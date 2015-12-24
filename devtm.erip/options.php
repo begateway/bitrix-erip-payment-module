@@ -11,14 +11,16 @@ global $APPLICATION;
 $module_id = "devtm.erip";
 
 $all_options = array(
-					"domain_api" =>Loc::getMessage("DEVTM_ERIP_DOMAIN_API_DESC"),
+					"address_for_send" =>Loc::getMessage("DEVTM_ERIP_DOMAIN_API_DESC"),
 					"shop_id" => Loc::getMessage("DEVTM_ERIP_SHOP_ID_DESC"),
 					"shop_key" => Loc::getMessage("DEVTM_ERIP_SHOP_KEY_DESC"),
 					"notification_url" => Loc::getMessage("DEVTM_ERIP_NOTIFICATION_URL_DESC"),
 					"service_number" => Loc::getMessage("DEVTM_ERIP_SERVICE_NUMBER_DESC"),
 					"company_name" => Loc::getMessage("DEVTM_ERIP_COMPANY_NAME_DESC"),
+					"sale_name" => Loc::getMessage("DEVTM_ERIP_SALE_NAME_DESC"),
 					"path_to_service" => Loc::getMessage("DEVTM_ERIP_PATH_TO_SERVICE_DESC"),
-					"description_for_payer" => Loc::getMessage("DEVTM_ERIP_FOR_PAYER_DESC"),
+					"service_info" => Loc::getMessage("DEVTM_ERIP_FOR_PAYER_DESC"),
+					"receipt" => Loc::getMessage("DEVTM_ERIP_RECEIPT_PAYER_DESC"),
 				);
 $tabs = array(
 			array(

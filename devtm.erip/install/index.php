@@ -69,6 +69,59 @@ class devtm_erip extends CModule
 		CSalePaySystem::Delete($ps_id);
 	}
 	
+	protected function copyHandlerFiles()
+	{
+		return CopyDirFiles(
+					$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$this->MODULE_ID."/install/sale_payment/",
+					$_SERVER["DOCUMENT_ROOT"]."/bitrix/php_interface/include/sale_payment",
+					true, true
+				);
+	}
+	
+	protected function deleteHandlerFiles()
+	{
+		DeleteDirFilesEx("/bitrix/php_interface/include/sale_payment/". $this->MODULE_ID);
+	}
+	
+	protected function addPaysysHandler( $psid )
+	{
+		$a_ps_act = array();
+		$fields = array(
+					"PAY_SYSTEM_ID" => $psid,
+					"NAME" => Loc::getMessage("DEVTM_ERIP_PS_ACTION_NAME"),
+					"ACTION_FILE" => "/bitrix/php_interface/include/sale_payment/".$this->MODULE_ID,
+					"NEW_WINDOW" => "N",
+					"HAVE_PREPAY" => "N",
+					"HAVE_RESULT" => "N",
+					"HAVE_ACTION" => "N",
+					"HAVE_PAYMENT" => "Y",
+					"HAVE_RESULT_RECEIVE" => "Y",
+					"ENCODING" => "utf-8",
+				 );
+		$db_pt = CSalePersonType::GetList(
+							array("SORT" => "ASC", "NAME" => "ASC"),
+							array()
+						);
+		while($pt = $db_pt->Fetch())
+		{
+			$fields["PERSON_TYPE_ID"] = $pt["ID"];
+			$id = CSalePaySystemAction::Add($fields);
+			if($id != false)
+				$a_ps_act[] = $id;
+			
+		}
+		
+		return $a_ps_act;
+	}
+	
+	protected function deletePaysysHandler()
+	{
+		$a_ps_act = explode("|", \Bitrix\Main\Config\Option::get( $this->MODULE_ID, "pay_handler_ids"));
+		if(!empty($a_ps_act))
+			foreach($a_ps_act as $id)
+				CSalePaySystemAction::Delete($id);
+	}
+	
 	protected function addOStatus()
 	{
 		$lang_er = array();
@@ -151,12 +204,27 @@ class devtm_erip extends CModule
 	
 	protected function addHandlers()
 	{
+		RegisterModuleDependences(
+							"sale",
+							"OnSaleOrderBeforeSaved",
+							$this->MODULE_ID,
+							"Handlers",
+							"onSaleOrderBeforeSaved",
+							200
+					   );
 		return true;
 	}
 	
 	protected function deleteHandlers()
 	{
-		return true;
+						UnRegisterModuleDependences(
+							"sale",
+							"OnSaleOrderBeforeSaved",
+							$this->MODULE_ID,
+							"Handlers",
+							"onSaleOrderBeforeSaved",
+							200
+						);
 	}
 	
     public function DoInstall()
@@ -166,13 +234,25 @@ class devtm_erip extends CModule
 			//регистраниция модуля
 			\Bitrix\Main\ModuleManager::registerModule($this->MODULE_ID);
 			
-			//создание платёжную систему
+			//создание платёжной системы
 			$psid = $this->addPaysys();
 			if($psid === false)
 				throw new Exception(Loc::getMessage("DEVTM_ERIP_PS_ERROR_MESS"));
 			
 			//сохранение ID пл. системы в настройках модуля
 			\Bitrix\Main\Config\Option::set( $this->MODULE_ID, "payment_system_id",  $psid);
+			
+			//копируем файлы обработчика пл. системы
+			if(!$this->copyHandlerFiles())
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_COPY_ERROR_MESS"));
+			
+			//регистрируем обработчик пл. системы
+			$pay_handler_ids = $this->addPaysysHandler($psid);
+			if(empty($pay_handler_ids))
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_PS_ACTION_ERROR_REG"));
+			
+			//сохраняем id обработчиков пл. системы
+				\Bitrix\Main\Config\Option::set( $this->MODULE_ID, "pay_handler_ids",  implode("|", $pay_handler_ids));
 			
 			//создание статуса заказа [ЕРИП]Ожидание оплаты
 			$o_status_code = $this->addOStatus();
@@ -197,9 +277,9 @@ class devtm_erip extends CModule
 			//сохранение ID почтового шаблона в настройках модуля
 			\Bitrix\Main\Config\Option::set( $this->MODULE_ID, "mail_template_id",  $mail_temp_id);
 			
-			//регистрация обработчика смены статуса заказа
-			//if($this->addHandlers() === false)
-			//	throw new Exception(Loc::getMessage("DEVTM_ERIP_HANDLERS_ADD_ERROR"));
+			//регистрация обработчика обновления заказа
+			if($this->addHandlers() === false)
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_HANDLERS_ADD_ERROR"));
 		
 			return true;
 		
@@ -213,7 +293,7 @@ class devtm_erip extends CModule
     public function DoUninstall()
     {
 		//удаление обработчика
-		//$this->deleteHandlers();
+		$this->deleteHandlers();
 		
 		//удаление почтового шаблона
 		$this->deleteMailTemplate();
@@ -223,6 +303,12 @@ class devtm_erip extends CModule
 		
 		//удаление статуса заказа [ЕРИП]Ожидание оплаты
 		$this->deleteOStatus();
+		
+		//удаляем обработчики пл. системы
+		$this->deletePaysysHandler();
+		
+		//удаления файлов обработчика пл. системы
+		$this->deleteHandlerFiles();
 		
 		//удаление платёжной системы
 		$this->deletePaysys();

@@ -31,3 +31,6 @@ $MESS["DEVTM_ERIP_MAIL_TEMPLATE_MESS"] = "Здравствуйте, #NAME#!
 5. Совершить платеж.";
 $MESS["DEVTM_ERIP_MAIL_TEMPLATE_ADD_ERROR"] = "Не удалось добавить почтовый шаблон";
 $MESS["DEVTM_ERIP_HANDLERS_ADD_ERROR"] = "Не удалось добавить обработчик смены статуса заказа";
+$MESS["DEVTM_ERIP_COPY_ERROR_MESS"] = "Не удалось скопировать файлы обработчика пл. системы";
+$MESS["DEVTM_ERIP_PS_ACTION_NAME"] = "Обработчик платёжной системы Расчёт(ЕРИП)";
+$MESS["DEVTM_ERIP_PS_ACTION_ERROR_REG"] = "Ни один обработчик пл. системы не зарегистрирован";
