@@ -3,9 +3,9 @@ namespace Dm;
 
 class CurlJsonRequest
 {	
-	protected $login = 363;
-	protected $password = "4f585d2709776e53d080f36872fd1b63b700733e7624dfcadd057296daa37df6";
-	public $address_for_send = "https://api.bepaid.by/beyag/payments";
+	protected $login;
+	protected $password;
+	protected $address_for_send;
 	public $t_req;
 
 	public function setLogin($login)
@@ -18,9 +18,19 @@ class CurlJsonRequest
 		$this->password = $password;
 	}
 	
+	public function setAddress4Send($domain = "api.bepaid.by")
+	{
+		$this->address_for_send = "https://".$domain."/beyag/payments";
+	}
+	
+	public function getAddress4Send()
+	{
+		return $this->address_for_send;
+	}
+	
 	public function submit()
 	{
-        $process = curl_init($this->address_for_send);
+        $process = curl_init($this->getAddress4Send());
         $json = json_encode($this->t_req);
 
         if (!empty($this->t_req))
@@ -29,7 +39,7 @@ class CurlJsonRequest
           curl_setopt($process, CURLOPT_POST, 1);
           curl_setopt($process, CURLOPT_POSTFIELDS, $json);
         }
-        curl_setopt($process, CURLOPT_URL, $this->address_for_send);
+        curl_setopt($process, CURLOPT_URL, $this->getAddress4Send());
         curl_setopt($process, CURLOPT_USERPWD, $this->login . ":" . $this->password);
         curl_setopt($process, CURLOPT_TIMEOUT, 30);
 		curl_setopt($process, CURLOPT_RETURNTRANSFER, TRUE);

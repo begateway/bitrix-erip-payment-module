@@ -10,6 +10,10 @@ class Handlers
 		\Bitrix\Main\Loader::includeModule("sale");
 	}
 	
+	static public function met($a, $b)
+	{
+		die;
+	}
 	static public function onSaleOrderBeforeSaved($event)
 	{
 		
@@ -82,9 +86,13 @@ class Handlers
 	{
 		self::$o_erip->setLogin(\Bitrix\Main\Config\Option::get( self::$module_id, "shop_id"));
 		self::$o_erip->setPassword(\Bitrix\Main\Config\Option::get( self::$module_id, "shop_key"));
-		self::$o_erip->address_for_send = \Bitrix\Main\Config\Option::get( self::$module_id, "address_for_send");
+		self::$o_erip->setAddress4Send(\Bitrix\Main\Config\Option::get( self::$module_id, "address_for_send"));
 		self::$o_erip->description = "order: ".self::$v["ID"];
-		self::$o_erip->notification_url = \Bitrix\Main\Config\Option::get( self::$module_id, "notification_url");
+		
+		$notification_url = \Bitrix\Main\Config\Option::get( self::$module_id, "notification_url");
+		$notification_url = str_replace('bitrix.local', 'bitrix.webhook.begateway.com:8443', $notification_url);
+		
+		self::$o_erip->notification_url = $notification_url;
 		self::$o_erip->account_number = self::$v["ID"];
 		self::$o_erip->service_number = \Bitrix\Main\Config\Option::get( self::$module_id, "service_number");
 		self::$o_erip->service_info = \Bitrix\Main\Config\Option::get( self::$module_id, "service_info");

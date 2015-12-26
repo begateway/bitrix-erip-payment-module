@@ -67,6 +67,7 @@ class devtm_erip extends CModule
 	{
 		$ps_id = (int)\Bitrix\Main\Config\Option::get( $this->MODULE_ID, "payment_system_id");
 		CSalePaySystem::Delete($ps_id);
+		return true;
 	}
 	
 	protected function copyHandlerFiles()
@@ -81,6 +82,7 @@ class devtm_erip extends CModule
 	protected function deleteHandlerFiles()
 	{
 		DeleteDirFilesEx("/bitrix/php_interface/include/sale_payment/". $this->MODULE_ID);
+		return true;
 	}
 	
 	protected function addPaysysHandler( $psid )
@@ -120,6 +122,7 @@ class devtm_erip extends CModule
 		if(!empty($a_ps_act))
 			foreach($a_ps_act as $id)
 				CSalePaySystemAction::Delete($id);
+		return true;
 	}
 	
 	protected function addOStatus()
@@ -147,6 +150,7 @@ class devtm_erip extends CModule
 		$code_status = \Bitrix\Main\Config\Option::get( $this->MODULE_ID, "order_status_code_erip");
 		$o_s = new CSaleStatus;
 		$o_s->Delete($code_status);
+		return true;
 	}
 	
 	protected function addMailEvType()
@@ -172,6 +176,7 @@ class devtm_erip extends CModule
 	{
 		$et = \Bitrix\Main\Config\Option::get( $this->MODULE_ID, "mail_event_name");
 		CEventType::Delete($et);
+		return true;
 	}
 	
 	protected function addMailTemplate()
@@ -200,31 +205,33 @@ class devtm_erip extends CModule
 	{
 		$mail_template_id = (int)\Bitrix\Main\Config\Option::get( $this->MODULE_ID, "mail_template_id");
 		CEventMessage::Delete($mail_template_id);
+		return true;
 	}
 	
 	protected function addHandlers()
 	{
 		RegisterModuleDependences(
-							"sale",
-							"OnSaleOrderBeforeSaved",
-							$this->MODULE_ID,
-							"Handlers",
-							"onSaleOrderBeforeSaved",
-							200
-					   );
+			"sale",
+			"OnSaleOrderBeforeSaved",
+			$this->MODULE_ID,
+			"Handlers",
+			"onSaleOrderBeforeSaved",
+			200
+	   );
 		return true;
 	}
 	
 	protected function deleteHandlers()
 	{
-						UnRegisterModuleDependences(
-							"sale",
-							"OnSaleOrderBeforeSaved",
-							$this->MODULE_ID,
-							"Handlers",
-							"onSaleOrderBeforeSaved",
-							200
-						);
+		UnRegisterModuleDependences(
+			"sale",
+			"OnSaleOrderBeforeSaved",
+			$this->MODULE_ID,
+			"Handlers",
+			"onSaleOrderBeforeSaved",
+			200
+		);
+		return true;
 	}
 	
     public function DoInstall()

@@ -11,16 +11,17 @@ global $APPLICATION;
 $module_id = "devtm.erip";
 
 $all_options = array(
-					"address_for_send" =>Loc::getMessage("DEVTM_ERIP_DOMAIN_API_DESC"),
-					"shop_id" => Loc::getMessage("DEVTM_ERIP_SHOP_ID_DESC"),
-					"shop_key" => Loc::getMessage("DEVTM_ERIP_SHOP_KEY_DESC"),
-					"notification_url" => Loc::getMessage("DEVTM_ERIP_NOTIFICATION_URL_DESC"),
-					"service_number" => Loc::getMessage("DEVTM_ERIP_SERVICE_NUMBER_DESC"),
-					"company_name" => Loc::getMessage("DEVTM_ERIP_COMPANY_NAME_DESC"),
-					"sale_name" => Loc::getMessage("DEVTM_ERIP_SALE_NAME_DESC"),
-					"path_to_service" => Loc::getMessage("DEVTM_ERIP_PATH_TO_SERVICE_DESC"),
-					"service_info" => Loc::getMessage("DEVTM_ERIP_FOR_PAYER_DESC"),
-					"receipt" => Loc::getMessage("DEVTM_ERIP_RECEIPT_PAYER_DESC"),
+					"address_for_send" => array(Loc::getMessage("DEVTM_ERIP_DOMAIN_API_DESC"), "text"),
+					"shop_id" => array(Loc::getMessage("DEVTM_ERIP_SHOP_ID_DESC"), "text"),
+					"shop_key" => array(Loc::getMessage("DEVTM_ERIP_SHOP_KEY_DESC"), "text"),
+					"notification_url" => array(Loc::getMessage("DEVTM_ERIP_NOTIFICATION_URL_DESC"), "text"),
+					"service_number" => array(Loc::getMessage("DEVTM_ERIP_SERVICE_NUMBER_DESC"), "text"),
+					"company_name" => array(Loc::getMessage("DEVTM_ERIP_COMPANY_NAME_DESC"), "text"),
+					"sale_name" => array(Loc::getMessage("DEVTM_ERIP_SALE_NAME_DESC"), "text"),
+					"path_to_service" => array(Loc::getMessage("DEVTM_ERIP_PATH_TO_SERVICE_DESC"), "text"),
+					"payment_description" => array(Loc::getMessage("DEVTM_ERIP_PAYMENT_OPT_DESC"), "textarea"),
+					"service_info" => array(Loc::getMessage("DEVTM_ERIP_FOR_PAYER_DESC"), "text"),
+					"receipt" => array(Loc::getMessage("DEVTM_ERIP_RECEIPT_PAYER_DESC"), "text"),
 				);
 $tabs = array(
 			array(
@@ -61,15 +62,26 @@ $o_tab->Begin();
 <?
 $o_tab->BeginNextTab();
 foreach( $all_options as $name => $desc ):
-	$cur_opt_val = Bitrix\Main\Config\Option::get( $module_id, $name );
+	$cur_opt_val = htmlspecialcharsbx(Bitrix\Main\Config\Option::get( $module_id, $name ));
+	$name = htmlspecialcharsbx($name);
 ?>
 	<tr>
 		<td width="40%">
-			<label for="<?echo htmlspecialcharsbx($name)?>"><?echo $desc?>:</label>
+			<label for="<?echo $name?>"><?echo $desc[0]?>:</label>
 		</td>
+<?
+	if($desc[1] == "text"):
+?>
 		<td width="60%">
-			<input type="text" value="<?echo htmlspecialcharsbx($cur_opt_val)?>" name="<?echo htmlspecialcharsbx($name)?>">
+			<input type="text" id="<?echo $name?>" value="<?echo $cur_opt_val?>" name="<?echo $name?>">
 		</td>
+<?
+	elseif($desc[1] == "textarea"):
+?>
+		<td width="60%">
+			<textarea cols="60" rows="15" name="<?echo $name?>" id="<?echo $name?>"><?if(strlen($cur_opt_val) > 0) echo $cur_opt_val; else echo Loc::getMessage("DEVTM_ERIP_PAYMENT_DESC")?></textarea>
+		</td>
+	<?endif;?>
 	</tr>
 <?endforeach?>
 <?$o_tab->Buttons();?>
