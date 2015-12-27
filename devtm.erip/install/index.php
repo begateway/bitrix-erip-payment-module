@@ -66,7 +66,14 @@ class devtm_erip extends CModule
 	protected function deletePaysys()
 	{
 		$ps_id = (int)\Bitrix\Main\Config\Option::get( $this->MODULE_ID, "payment_system_id");
-		CSalePaySystem::Delete($ps_id);
+		
+		$order = CSaleOrder::GetList(array(), array("PAY_SYSTEM_ID" => $ps_id))->Fetch();
+		if($order["ID"] > 0)
+			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_PAMENT_ERROR"));
+		
+		if(!CSalePaySystem::Delete($ps_id))
+			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_PAMENT2_ERROR"));
+		
 		return true;
 	}
 	
@@ -148,8 +155,14 @@ class devtm_erip extends CModule
 	protected function deleteOStatus()
 	{
 		$code_status = \Bitrix\Main\Config\Option::get( $this->MODULE_ID, "order_status_code_erip");
+		
+		$order = CSaleOrder::GetList(array(), array("STATUS_ID" => $code_status))->Fetch();
+		if($order["ID"] > 0)
+			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_STATUS_ERROR"));
+		
 		$o_s = new CSaleStatus;
-		$o_s->Delete($code_status);
+		if(!$o_s->Delete($code_status))
+			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_STATUS2_ERROR"));
 		return true;
 	}
 	
@@ -228,8 +241,7 @@ class devtm_erip extends CModule
 			"OnSaleOrderBeforeSaved",
 			$this->MODULE_ID,
 			"Handlers",
-			"onSaleOrderBeforeSaved",
-			200
+			"onSaleOrderBeforeSaved"
 		);
 		return true;
 	}
@@ -292,6 +304,7 @@ class devtm_erip extends CModule
 		
 		}catch(Exception $e){
 			$this->DoUninstall();
+			$GLOBALS["APPLICATION"]->ThrowException($e->getMessage());
 			return false;
 		}
 		return true;
@@ -299,32 +312,39 @@ class devtm_erip extends CModule
 
     public function DoUninstall()
     {
-		//удаление обработчика
-		$this->deleteHandlers();
+		try
+		{
+			//удаление платёжной системы
+			$this->deletePaysys();
+			
+			//удаление статуса заказа [ЕРИП]Ожидание оплаты
+			$this->deleteOStatus();
+			
+			//удаление обработчика
+			$this->deleteHandlers();
+			
+			//удаление почтового шаблона
+			$this->deleteMailTemplate();
+			
+			//удаление почтового события
+			$this->deleteMailEvType();
+			
+			//удаляем обработчики пл. системы
+			$this->deletePaysysHandler();
+			
+			//удаления файлов обработчика пл. системы
+			$this->deleteHandlerFiles();
+			
+			//удаление настроек модуля
+			Bitrix\Main\Config\Option::delete( $this->MODULE_ID );
+			
+			//удаление модуля из системы
+			Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
+			return true;
 		
-		//удаление почтового шаблона
-		$this->deleteMailTemplate();
-		
-		//удаление почтового события
-		$this->deleteMailEvType();
-		
-		//удаление статуса заказа [ЕРИП]Ожидание оплаты
-		$this->deleteOStatus();
-		
-		//удаляем обработчики пл. системы
-		$this->deletePaysysHandler();
-		
-		//удаления файлов обработчика пл. системы
-		$this->deleteHandlerFiles();
-		
-		//удаление платёжной системы
-		$this->deletePaysys();
-		
-		//удаление настроек модуля
-		Bitrix\Main\Config\Option::delete( $this->MODULE_ID );
-        
-		//удаление модуля из системы
-		Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
-		return true;
+		}catch(Exception $e){
+			$GLOBALS["APPLICATION"]->ThrowException($e->getMessage());
+			return false;
+		}
     }
 }
