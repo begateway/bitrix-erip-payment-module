@@ -10,11 +10,11 @@ class Handlers
 		\Bitrix\Main\Loader::includeModule("sale");
 	}
 
-	static public function onSaleOrderBeforeSaved($event)
+	static public function onSaleOrderBeforeSaved($entity)
 	{
 		
-		self::$v = $event->getFields()->getValues();
-		$old_v = $event->getOriginalValues;
+		self::$v = $entity->getFields()->getValues();
+		$old_v = $entity->getOriginalValues;
 
 		
 		$opt_st = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
