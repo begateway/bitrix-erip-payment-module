@@ -12,11 +12,11 @@ class Handlers
 
 	static public function onSaleOrderBeforeSaved($entity)
 	{
-		
-		self::$v = $entity->getFields()->getValues();
-		$old_v = $entity->getOriginalValues;
+		$fields = $entity->getFields();
+		self::$v = $fields->getValues();
+		$old_v = $fields->getOriginalValues();
 
-		
+
 		$opt_st = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			
 		if($opt_st == self::$v["STATUS_ID"] && $old_v["STATUS_ID"] != self::$v["STATUS_ID"])
@@ -56,9 +56,8 @@ class Handlers
 					  );
 				CEvent::Send($emt, static::getSites(), $mf, "N", \Bitrix\Main\Config\Option::get( self::$module_id, "mail_template_id"));
 			}
-			
+			return true;
 		}
-		return true;
 	}
 	
 	static public function getSites()
