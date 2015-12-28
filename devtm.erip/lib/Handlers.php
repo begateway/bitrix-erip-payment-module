@@ -9,11 +9,7 @@ class Handlers
 	{
 		\Bitrix\Main\Loader::includeModule("sale");
 	}
-	
-	static public function met($a, $b)
-	{
-		die;
-	}
+
 	static public function onSaleOrderBeforeSaved($event)
 	{
 		
