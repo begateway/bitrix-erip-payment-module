@@ -10,8 +10,8 @@ class Handlers
 		\Bitrix\Main\Loader::includeModule("sale");
 	}
 
-	static public function onSaleOrderBeforeSaved($entity)
-	{
+	static public function statusOrderChangeHandler($entity)
+	{//echo "<pre>";print_r($entity);echo "</pre>";die();
 		$fields = $entity->getFields();
 		self::$v = $fields->getValues();
 		$old_v = $fields->getOriginalValues();
