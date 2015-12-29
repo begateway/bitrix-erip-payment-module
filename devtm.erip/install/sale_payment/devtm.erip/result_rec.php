@@ -30,7 +30,7 @@ if($webhook->isAuthorized())
 								"STATUS_ID" => "P",
 								"PAYED" => "Y"
 						  );
-				CSaleOrder:Update($order["ID"], $fields);
+				\Bitrix\Sale\Internals\OrderTable::update($order["ID"], $fields);
 				echo "OK";
 			}
 		}
