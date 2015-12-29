@@ -100,14 +100,15 @@ class Handlers
 		$emt = \Bitrix\Main\Config\Option::get( self::$module_id, "mail_event_name");
  
 		$mf = array(
-				"EMAIL_TO" => self::$o_response->costomer->email,
-				"NAME" => self::$o_response->costomer->first_name,
+				"EMAIL_TO" => self::$o_response->transaction->customer->email,
+				"NAME" => self::$o_response->transaction->billing_address->first_name,
 				"ORDER_ID" => self::$values["ID"],
 				"SALE_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "sale_name"),
 				"COMPANY_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "company_name"),
 				"PATH_TO_SERVICE" => \Bitrix\Main\Config\Option::get( self::$module_id, "path_to_service"),
 				"SERVER_NAME" => $_SERVER["SERVER_NAME"],
 			  );
+		
 		CEvent::Send($emt, static::getSites(), $mf, "N", \Bitrix\Main\Config\Option::get( self::$module_id, "mail_template_id"));
 	}
 	
