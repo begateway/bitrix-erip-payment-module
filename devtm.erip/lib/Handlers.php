@@ -60,7 +60,7 @@ class Handlers
 			self::$o_erip = new \Dm\Erip();
 			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
-			self::$values = CSaleOrder(array(), array("ID" => $id), false, false, array("ID", "PAY_SYSTEM_ID", "PRICE", "CURRENCY", "STATUS_ID"))->Fetch();
+			self::$values = CSaleOrder::GetList(array(), array("ID" => $id), false, false, array("ID", "PAY_SYSTEM_ID", "PRICE", "CURRENCY", "STATUS_ID"))->Fetch();
 			
 			
 			if(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment &&
