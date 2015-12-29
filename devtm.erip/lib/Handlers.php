@@ -9,6 +9,7 @@ class Handlers
 	static public $values;
 	static public $opt_status;
 	static public $opt_payment;
+	static public $o_response;
 
 	static public function chStatusNew($entity)
 	{
@@ -31,16 +32,16 @@ class Handlers
 				static::setMoneyInfo();
 				
 				$r = self::$o_erip->submit();
-				$o_response = json_decode($r);
+				self::$o_response = json_decode($r);
 				
-				if(isset($o_response->errors))
-					throw new \Exception($o_response->message);
+				if(isset(self::$o_response->errors))
+					throw new \Exception(self::$o_response->message);
 				
 				
-				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". $o_response->transaction->status ."\n".
-																"transaction_id: ". $o_response->transaction->transaction_id ."\n".
-																"order_id: ". $o_response->transaction->order_id ."\n".
-																"account_number: ". $o_response->transaction->erip->account_number ."\n")))
+				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
+																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
+																"order_id: ". self::$o_response->transaction->order_id ."\n".
+																"account_number: ". self::$o_response->transaction->erip->account_number ."\n")))
 				{
 					static::sendMail();
 				}
@@ -73,15 +74,15 @@ class Handlers
 				static::setMoneyInfo();
 				
 				$r = self::$o_erip->submit();
-				$o_response = json_decode($r);
+				self::$o_response = json_decode($r);
 				
-				if(isset($o_response->errors))
-					throw new \Exception($o_response->message);
+				if(isset(self::$o_response->errors))
+					throw new \Exception(self::$o_response->message);
 				
-				if(CSaleOrder::Update($id, array("COMMENTS" => "status: ". $o_response->transaction->status ."\n".
-																"transaction_id: ". $o_response->transaction->transaction_id ."\n".
-																"order_id: ". $o_response->transaction->order_id ."\n".
-																"account_number: ". $o_response->transaction->erip->account_number ."\n")))
+				if(CSaleOrder::Update($id, array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
+																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
+																"order_id: ". self::$o_response->transaction->order_id ."\n".
+																"account_number: ". self::$o_response->transaction->erip->account_number ."\n")))
 				{
 					static::sendMail();
 				}
@@ -99,8 +100,8 @@ class Handlers
 		$emt = \Bitrix\Main\Config\Option::get( self::$module_id, "mail_event_name");
  
 		$mf = array(
-				"EMAIL_TO" => $o_response->costumer->email,
-				"NAME" => $o_response->costumer->first_name,
+				"EMAIL_TO" => self::$o_response->costomer->email,
+				"NAME" => self::$o_response->costomer->first_name,
 				"ORDER_ID" => self::$values["ID"],
 				"SALE_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "sale_name"),
 				"COMPANY_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "company_name"),
