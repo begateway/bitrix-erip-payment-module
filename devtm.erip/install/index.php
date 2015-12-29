@@ -228,9 +228,20 @@ class devtm_erip extends CModule
 			"OnSaleBeforeStatusOrderChange",
 			$this->MODULE_ID,
 			"Handlers",
-			"statusOrderChangeHandler",
+			"chStatusNew",
 			200
 	   );
+	   
+	   //Совместимость со старым событием OnSaleBeforeStatusOrder
+	   RegisterModuleDependences(
+			"sale",
+			"OnSaleBeforeStatusOrder",
+			$this->MODULE_ID,
+			"Handlers",
+			"chStatusOld",
+			200
+	   );
+	   
 		return true;
 	}
 	
@@ -241,8 +252,18 @@ class devtm_erip extends CModule
 			"OnSaleBeforeStatusOrderChange",
 			$this->MODULE_ID,
 			"Handlers",
-			"statusOrderChangeHandler"
+			"chStatusNew"
 		);
+		
+		//Совместимость со старым событием OnSaleBeforeStatusOrder
+		UnRegisterModuleDependences(
+			"sale",
+			"OnSaleBeforeStatusOrder",
+			$this->MODULE_ID,
+			"Handlers",
+			"chStatusOld"
+		);
+		
 		return true;
 	}
 	
