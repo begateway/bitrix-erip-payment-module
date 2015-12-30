@@ -206,7 +206,7 @@ class devtm_erip extends CModule
 				"EMAIL_FROM" => "#DEFAULT_EMAIL_FROM#",
 				"EMAIL_TO" => "#EMAIL_TO#",
 				"SUBJECT" => Loc::getMessage("DEVTM_ERIP_MAIL_TEMPLATE_THEMA"),
-				"BODY_TYPE" => "text",
+				"BODY_TYPE" => "html",
 				"MESSAGE" => Loc::getMessage("DEVTM_ERIP_MAIL_TEMPLATE_MESS"),
 			);
 		

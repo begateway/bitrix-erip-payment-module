@@ -21,17 +21,21 @@ class Handlers
 			self::$o_erip = new \Dm\Erip();
 			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
-			
+			//var_dump(self::$opt_status == self::$values["STATUS_ID"]);
+			//var_dump($old_values["STATUS_ID"] != self::$values["STATUS_ID"]);
+			//var_dump(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment);
+			//die;
 			if(self::$opt_status == self::$values["STATUS_ID"] &&
 				$old_values["STATUS_ID"] != self::$values["STATUS_ID"] &&
 				self::$values["PAY_SYSTEM_ID"] == self::$opt_payment)
 			{
 				static::setTehnicalInfo();
-				
+		
 				static::setUserInfo();
 				static::setMoneyInfo();
 				
 				$r = self::$o_erip->submit();
+			
 				self::$o_response = json_decode($r);
 				
 				if(isset(self::$o_response->errors))
@@ -104,6 +108,8 @@ class Handlers
 				"NAME" => self::$o_response->transaction->billing_address->first_name,
 				"ORDER_ID" => self::$values["ID"],
 				"SALE_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "sale_name"),
+				"SATE_NAME" => \Bitrix\Main\Config\Option::get( "main", "site_name"),
+				"SALE_EMAIL" => \Bitrix\Main\Config\Option::get( "sale", "order_email"),
 				"COMPANY_NAME" => \Bitrix\Main\Config\Option::get( self::$module_id, "company_name"),
 				"PATH_TO_SERVICE" => \Bitrix\Main\Config\Option::get( self::$module_id, "path_to_service"),
 				"SERVER_NAME" => $_SERVER["SERVER_NAME"],
