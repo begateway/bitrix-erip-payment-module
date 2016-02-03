@@ -1,9 +1,4 @@
 <?php
-if( ! IsModuleInstalled("sale") ||
-	! function_exists("curl_init") ||
-	! function_exists("json_decode") ||
-	! function_exists("mb_detect_encoding") ) return;
-
 use Bitrix\Main\Localization\Loc;
 Loc::loadMessages(__FILE__);
 
@@ -271,6 +266,14 @@ class devtm_erip extends CModule
     {
 		try
 		{	
+			//Проверка зависимостей модуля
+			if( ! IsModuleInstalled("sale") )
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_SALE_MODULE_NOT_INSTALL_ERROR"));
+			if( ! function_exists("curl_init") )
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_CURL_NOT_INSTALL_ERROR"));
+			if( ! function_exists("json_decode") )
+				throw new Exception(Loc::getMessage("DEVTM_ERIP_JSON_NOT_INSTALL_ERROR"));
+			
 			//регистраниция модуля
 			\Bitrix\Main\ModuleManager::registerModule($this->MODULE_ID);
 			
