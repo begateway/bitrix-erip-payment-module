@@ -11,7 +11,7 @@ class Money
 		if(!is_numeric($amount))
 			throw new Exception("Price must be a number");
 		
-		$this->amount = $amount*100;
+		$this->amount = $amount;
 	}
 	
 	public function getAmount()
