@@ -12,20 +12,20 @@ class Erip extends CurlJsonRequest
 	public $service_info;
 	public $receipt;
 	public $order_id;
-	
+
 	public function __construct()
 	{
 		$this->costumer = new \Dm\Costumer;
 		$this->money = new \Dm\Money;
 	}
-	
+
 	public function orderGenerate( $oid )
 	{
 		$oid = (int)$oid;
 		$n = 100000000000;
 		$this->order_id = $oid + $n;
 	}
-	
+
 	protected function buildRequest()
 	{
 		return array(
@@ -50,17 +50,17 @@ class Erip extends CurlJsonRequest
 															"type" => "erip",
 															"account_number" => $this->account_number,
 															"service_no" => $this->service_number,
-															"service_info" => array('"'. $this->service_info .'"'),
-															"receipt" => array('"'.$this->receipt.'"'),
+															"service_info" => array('"'. sprintf($this->service_info, $this->account_number) .'"'),
+															"receipt" => array('"'. sprintf($this->receipt, $this->account_number) .'"'),
 														)
 								)
 				);
 	}
-	
+
 	public function submit()
 	{
 		$this->t_req = $this->buildRequest();
 		$p = parent::submit();
-		return $p; 
+		return $p;
 	}
 }
