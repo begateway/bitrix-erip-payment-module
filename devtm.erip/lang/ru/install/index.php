@@ -55,5 +55,4 @@ $MESS["DEVTM_ERIP_DELETE_PAMENT2_ERROR"] = "Произошла ошибка пр
 $MESS["DEVTM_ERIP_SALE_MODULE_NOT_INSTALL_ERROR"] = "Для работы модуля требуется установленный модуль интернет-магазина";
 $MESS["DEVTM_ERIP_CURL_NOT_INSTALL_ERROR"] = "Для работы модуля требуется библиотека curl";
 $MESS["DEVTM_ERIP_JSON_NOT_INSTALL_ERROR"] = "Для работы модуля требуется библиотека для работы с json";
-$MESS["DEVTM_ERIP_PRICE_ERROR"] = "Сумма к оплате должна быть целочисленной";
 $MESS["DEVTM_ERIP_PRICE_CURRENCY_ERROR"] = "Валюта %s не поддерживается при оплате через ЕРИП";
