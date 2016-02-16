@@ -21,10 +21,6 @@ class Handlers
 			self::$o_erip = new \Dm\Erip();
 			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
-			//var_dump(self::$opt_status == self::$values["STATUS_ID"]);
-			//var_dump($old_values["STATUS_ID"] != self::$values["STATUS_ID"]);
-			//var_dump(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment);
-			//die;
 			if(self::$opt_status == self::$values["STATUS_ID"] &&
 				$old_values["STATUS_ID"] != self::$values["STATUS_ID"] &&
 				self::$values["PAY_SYSTEM_ID"] == self::$opt_payment)
@@ -53,8 +49,7 @@ class Handlers
 			}
 
 		}catch(Exception $e){
-			$GLOBALS["APPLICATION"]->ThrowException($e->getMessage());
-			return false;
+      return self::report_error($e->getMessage());
 		}
 	}
 
@@ -94,8 +89,7 @@ class Handlers
 			}
 
 		}catch(Exception $e){
-			$GLOBALS["APPLICATION"]->ThrowException($e->getMessage());
-			return false;
+      return self::report_error($e->getMessage());
 		}
 	}
 
@@ -188,4 +182,14 @@ class Handlers
 		self::$o_erip->costumer->setCountry("BY");
 		self::$o_erip->costumer->ip = $_SERVER["REMOTE_ADDR"];
 	}
+
+  static public function report_error($msg = '') {
+      ShowMessage($msg);
+      if (class_exists('\Bitrix\Sale\UserMessageException')) {
+        throw new \Bitrix\Sale\UserMessageException($msg);
+      } else {
+        throw new \Bitrix\Sale\SystemException($msg);
+      }
+      return false;
+  }
 }
