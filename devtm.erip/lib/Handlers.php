@@ -15,7 +15,7 @@ class Handlers
 	{
 		try
 		{
-			$fields = $entity->getFields();
+      $fields = $entity->getFields();
 			self::$values = $fields->getValues();
 			$old_values = $fields->getOriginalValues();
 			self::$o_erip = new \Dm\Erip();
@@ -37,7 +37,6 @@ class Handlers
 				if(isset(self::$o_response->errors))
 					throw new \Exception(self::$o_response->message);
 
-
 				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
 																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
 																"order_id: ". self::$o_response->transaction->order_id ."\n".
@@ -45,11 +44,12 @@ class Handlers
 				{
 					static::sendMail();
 				}
-				return true;
+				return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::SUCCESS);
 			}
 
 		}catch(Exception $e){
-      return self::report_error($e->getMessage());
+      $error = new \Bitrix\Sale\ResultError($e->getMessage(), $values['ID']);
+      return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::ERROR, array('ERROR' => $error), 'sale');
 		}
 	}
 
@@ -61,7 +61,6 @@ class Handlers
 			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
 			self::$values = CSaleOrder::GetList(array(), array("ID" => $id), false, false, array("ID", "PAY_SYSTEM_ID", "PRICE", "CURRENCY", "STATUS_ID"))->Fetch();
-
 
 			if(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment &&
 				$status != self::$values["STATUS_ID"] &&

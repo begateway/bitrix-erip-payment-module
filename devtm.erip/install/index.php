@@ -222,7 +222,7 @@ class devtm_erip extends CModule
 	{
 		RegisterModuleDependences(
 			"sale",
-			"OnSaleBeforeStatusOrderChange",
+			"OnSaleOrderBeforeSaved",
 			$this->MODULE_ID,
 			"Handlers",
 			"chStatusNew",
@@ -246,7 +246,7 @@ class devtm_erip extends CModule
 	{
 		UnRegisterModuleDependences(
 			"sale",
-			"OnSaleBeforeStatusOrderChange",
+			"OnSaleOrderBeforeSaved",
 			$this->MODULE_ID,
 			"Handlers",
 			"chStatusNew"
