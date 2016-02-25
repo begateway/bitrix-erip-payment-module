@@ -32,26 +32,26 @@ class Erip extends CurlJsonRequest
 					"request" => array(
 									"amount" => $this->money->getAmount(),
 									"currency" => $this->money->getCurrency(),
-									"description" => $this->description,
+									"description" => \Dm\Erip::to_utf8($this->description),
 									"email" => $this->costumer->email,
 									"ip" => $this->costumer->ip,
 									"order_id" => $this->order_id,
 									"notification_url" => $this->notification_url,
 									"customer" => array(
-													"first_name" => $this->costumer->first_name,
-													"last_name" => $this->costumer->last_name,
-													"country" => $this->costumer->getCountry(),
-													"city" => $this->costumer->city,
-													"zip" => $this->costumer->zip,
-													"address" => $this->costumer->address,
-													"phone" => $this->costumer->phone,
+													"first_name" => \Dm\Erip::to_utf8($this->costumer->first_name),
+													"last_name" => \Dm\Erip::to_utf8($this->costumer->last_name),
+													"country" => \Dm\Erip::to_utf8($this->costumer->getCountry()),
+													"city" => \Dm\Erip::to_utf8($this->costumer->city),
+													"zip" => \Dm\Erip::to_utf8($this->costumer->zip),
+													"address" => \Dm\Erip::to_utf8($this->costumer->address),
+													"phone" => \Dm\Erip::to_utf8($this->costumer->phone),
 												  ),
 									"payment_method" => array(
 															"type" => "erip",
 															"account_number" => $this->account_number,
 															"service_no" => $this->service_number,
-															"service_info" => array('"'. sprintf($this->service_info, $this->account_number) .'"'),
-															"receipt" => array('"'. sprintf($this->receipt, $this->account_number) .'"'),
+															"service_info" => array(\Dm\Erip::to_utf8(str_replace('#INVOICE#', $this->account_number, $this->service_info))),
+															"receipt" => array(\Dm\Erip::to_utf8(str_replace('#INVOICE#', $this->account_number, $this->receipt))),
 														)
 								)
 				);
@@ -63,4 +63,13 @@ class Erip extends CurlJsonRequest
 		$p = parent::submit();
 		return $p;
 	}
+
+  public static function to_utf8($param)
+  {
+    $in = $param;
+    if (strtolower(LANG_CHARSET) == 'windows-1251') {
+      $in = mb_convert_encoding($in, 'UTF-8', 'WINDOWS-1251');
+    }
+    return $in;
+  }
 }
