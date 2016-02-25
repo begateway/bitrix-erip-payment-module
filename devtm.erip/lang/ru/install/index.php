@@ -46,7 +46,7 @@ E-mail: <b><a href=\"mailto:#SALE_EMAIL#\" style=\"color:#2e6eb6;\">#SALE_EMAIL#
 $MESS["DEVTM_ERIP_MAIL_TEMPLATE_ADD_ERROR"] = "Не удалось добавить почтовый шаблон";
 $MESS["DEVTM_ERIP_HANDLERS_ADD_ERROR"] = "Не удалось добавить обработчик смены статуса заказа";
 $MESS["DEVTM_ERIP_COPY_ERROR_MESS"] = "Не удалось скопировать файлы обработчика пл. системы";
-$MESS["DEVTM_ERIP_PS_ACTION_NAME"] = "Платёжная система АИС Расчёт (ЕРИП)";
+$MESS["DEVTM_ERIP_PS_ACTION_NAME"] = "Система 'Расчёт' (ЕРИП)";
 $MESS["DEVTM_ERIP_PS_ACTION_ERROR_REG"] = "Ни один обработчик пл. системы не зарегистрирован";
 $MESS["DEVTM_ERIP_DELETE_STATUS_ERROR"] = "Произошла ошибка при удалении статуса заказа [ЕРИП] Ожидание оплаты\" так как в системе существуют заказы с данным статусом. Удалите такие заказы или смените у них статус, а потом повторите операцию удаления модуля.";
 $MESS["DEVTM_ERIP_DELETE_STATUS2_ERROR"] = "Произошла ошибка при удалении статуса заказа \"[ЕРИП] Ожидание оплаты\"";
