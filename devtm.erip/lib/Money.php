@@ -1,34 +1,34 @@
 <?
 namespace Dm;
+use Bitrix\Main\Localization\Loc;
+Loc::loadMessages(dirname(__FILE__) . '/../install/index.php');
 
 class Money
 {
 	protected $amount;
 	protected $currency;
-	
+
 	public function setAmount($amount)
 	{
-		if(!is_numeric($amount))
-			throw new Exception("Price must be a number");
-		
-		$this->amount = $amount*100;
+		$this->amount = $amount;
 	}
-	
+
 	public function getAmount()
 	{
-		return $this->amount;
+		$amount = ($this->currency == "BYR") ? $this->amount : $this->amount * 100;
+    return (int)$amount;
 	}
-	
+
 	public function setCurrency($currency)
 	{
-		$allowed_currency = array("RUB", "BYR",	"USD", "EUR");
-		
+		$allowed_currency = array("BYR", "BYN");
+
 		if(!in_array($currency,$allowed_currency))
-			throw new Exception("An invalid currency symbol");
-		
+			throw new \Exception(sprintf(Loc::getMessage("DEVTM_ERIP_PRICE_CURRENCY_ERROR"), $currency));
+
 		$this->currency = $currency;
 	}
-	
+
 	public function getCurrency()
 	{
 		return $this->currency;

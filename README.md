@@ -3,7 +3,7 @@
 ## Установка модуля
 
   * Создайте резервную копию вашего магазина и базы данных
-  * Скачайте архив модуля [bitrix-devtm-erip.zip](https://github.com/beGateway/bitrix-erip-payment-module/raw/master/bitrix-devtm-erip.zip)
+  * Скачайте архив модуля в кодировке UTF-8 [bitrix-devtm-erip.zip](https://github.com/beGateway/bitrix-erip-payment-module/raw/master/bitrix-devtm-erip.zip) или в Windows-1251 [bitrix-devtm-erip-windows-1251.zip](https://github.com/beGateway/bitrix-erip-payment-module/raw/master/bitrix-devtm-erip-windows-1251.zip) 
   * Распакуйте архив и скопируйте каталог `devtm.erip` в каталог
   `<1C-Bitrix/bitrix/modules/`
   * Зайдите в зону 1C-Битрикс администратора и выберите меню
