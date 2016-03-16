@@ -29,6 +29,7 @@ class Handlers
 
 				static::setUserInfo();
 				static::setMoneyInfo();
+				static::set_expired_at();
 
 				$r = self::$o_erip->submit();
 
@@ -70,6 +71,8 @@ class Handlers
 
 				static::setUserInfo();
 				static::setMoneyInfo();
+				static::set_expired_at();
+
 
 				$r = self::$o_erip->submit();
 				self::$o_response = json_decode($r);
@@ -142,8 +145,16 @@ class Handlers
 		self::$o_erip->account_number = self::$values["ID"];
 		self::$o_erip->service_number = \Bitrix\Main\Config\Option::get( self::$module_id, "service_number");
 		self::$o_erip->service_info = \Bitrix\Main\Config\Option::get( self::$module_id, "service_info");
-		self::$o_erip->receipt = \Bitrix\Main\Config\Option::get( self::$module_id, "receipt");;
+		self::$o_erip->receipt = \Bitrix\Main\Config\Option::get( self::$module_id, "receipt");
 		self::$o_erip->orderGenerate(self::$values["ID"]);
+	}
+
+	static public function set_expired_at()
+	{
+		$expired_at = \Bitrix\Main\Config\Option::get( self::$module_id, "expired_at");
+
+		if($expired_at != "")
+			self::$o_erip->expired_at = str_replace(" ", "T", ConvertDateTime($expired_at, "YYYY-MM-DD HH:MI:SS")) . "+03:00";
 	}
 
 	static public function setUserInfo()

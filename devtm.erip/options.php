@@ -14,6 +14,7 @@ $all_options = array(
 					"address_for_send" => Loc::getMessage("DEVTM_ERIP_DOMAIN_API_DESC"),
 					"shop_id" => Loc::getMessage("DEVTM_ERIP_SHOP_ID_DESC"),
 					"shop_key" => Loc::getMessage("DEVTM_ERIP_SHOP_KEY_DESC"),
+					"expired_at" => Loc::getMessage("DEVTM_ERIP_EXPIRED_AT_DESC"),
 					"notification_url" => Loc::getMessage("DEVTM_ERIP_NOTIFICATION_URL_DESC"),
 					"service_number" => Loc::getMessage("DEVTM_ERIP_SERVICE_NUMBER_DESC"),
 					"company_name" => Loc::getMessage("DEVTM_ERIP_COMPANY_NAME_DESC"),
@@ -69,7 +70,11 @@ foreach( $all_options as $name => $desc ):
 			<label for="<?echo $name?>"><?echo $desc?>:</label>
 		</td>
 		<td width="60%">
-			<input type="text" id="<?echo $name?>" value="<?echo $cur_opt_val?>" name="<?echo $name?>">
+			<?if($name == "expired_at"):?>
+				<?echo CAdminCalendar::CalendarDate($name, $cur_opt_val, 2, true)?>
+			<?else:?>
+				<input type="text" id="<?echo $name?>" value="<?echo $cur_opt_val?>" name="<?echo $name?>">
+			<?endif?>
 		</td>
 	</tr>
 <?endforeach?>
