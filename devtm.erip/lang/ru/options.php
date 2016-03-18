@@ -2,7 +2,8 @@
 $MESS["DEVTM_ERIP_DOMAIN_API_DESC"] = "Домен API";
 $MESS["DEVTM_ERIP_SHOP_ID_DESC"] = "ID магазина";
 $MESS["DEVTM_ERIP_SHOP_KEY_DESC"] = "Ключ магазина";
-$MESS["DEVTM_ERIP_EXPIRED_AT_DESC"] = "Время, до которого действителен платёж. По	умолчанию бессрочно";
+$MESS["DEVTM_ERIP_SET_AUTOMATIC_DESC"] = "Автоматически создавать счета в ЕРИП";
+$MESS["DEVTM_ERIP_EXPIRED_AT_DESC"] = "Сколько дней действителен счет в ЕРИП. Ожидаем целое от 1 до бесконечности";
 $MESS["DEVTM_ERIP_NOTIFICATION_URL_DESC"] = "Страница уведомления после оплаты";
 $MESS["DEVTM_ERIP_SERVICE_NUMBER_DESC"] = "Номер сервиса в системе ЕРИП";
 $MESS["DEVTM_ERIP_COMPANY_NAME_DESC"] = "Имя компании в системе ЕРИП";

@@ -22,6 +22,7 @@ $all_options = array(
 					"path_to_service" => Loc::getMessage("DEVTM_ERIP_PATH_TO_SERVICE_DESC"),
 					"service_info" => Loc::getMessage("DEVTM_ERIP_FOR_PAYER_DESC"),
 					"receipt" => Loc::getMessage("DEVTM_ERIP_RECEIPT_PAYER_DESC"),
+					"set_automatic" => Loc::getMessage("DEVTM_ERIP_SET_AUTOMATIC_DESC")
 				);
 $tabs = array(
 			array(
@@ -47,8 +48,16 @@ if( $REQUEST_METHOD == "POST" && strlen( $save . $reset ) > 0 && check_bitrix_se
 	{
 		foreach( $all_options as $name => $desc )
 		{
+			if($name == "set_automatic")	
+				$_REQUEST["set_automatic"] = $_REQUEST["set_automatic"] == "Y" ? "Y" : "N";
+
 			if( isset( $_REQUEST[$name] ) )
+			{
+				if($name == "expired_at")
+					$_REQUEST[$name] = is_numeric($_REQUEST[$name]) && $_REQUEST[$name] >= 1 ? $_REQUEST[$name] : 1;
+
 				\Bitrix\Main\Config\Option::set( $module_id, $name, $_REQUEST[$name] );
+			}
 		}
 	}
 	
@@ -70,8 +79,8 @@ foreach( $all_options as $name => $desc ):
 			<label for="<?echo $name?>"><?echo $desc?>:</label>
 		</td>
 		<td width="60%">
-			<?if($name == "expired_at"):?>
-				<?echo CAdminCalendar::CalendarDate($name, $cur_opt_val, 2, true)?>
+			<?if($name == "set_automatic"):?>
+				<input type="checkbox" id="<?echo $name?>" <?if($cur_opt_val == "Y"):?>checked<?endif?> value="Y" name="<?echo $name?>">
 			<?else:?>
 				<input type="text" id="<?echo $name?>" value="<?echo $cur_opt_val?>" name="<?echo $name?>">
 			<?endif?>

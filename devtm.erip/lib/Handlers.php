@@ -25,18 +25,8 @@ class Handlers
 				$old_values["STATUS_ID"] != self::$values["STATUS_ID"] &&
 				self::$values["PAY_SYSTEM_ID"] == self::$opt_payment)
 			{
-				static::setTehnicalInfo();
-
-				static::setUserInfo();
-				static::setMoneyInfo();
-				static::set_expired_at();
-
-				$r = self::$o_erip->submit();
-
-				self::$o_response = json_decode($r);
-
-				if(isset(self::$o_response->errors))
-					throw new \Exception(self::$o_response->message);
+				
+				self::set_and_send();
 
 				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
 																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
@@ -67,12 +57,7 @@ class Handlers
 				$status != self::$values["STATUS_ID"] &&
 				$status == self::$opt_status)
 			{
-				static::setTehnicalInfo();
-
-				static::setUserInfo();
-				static::setMoneyInfo();
-				static::set_expired_at();
-
+				self::set_and_send();
 
 				$r = self::$o_erip->submit();
 				self::$o_response = json_decode($r);
@@ -127,7 +112,7 @@ class Handlers
 
 	static public function setMoneyInfo()
 	{
-		self::$o_erip->money->setCurrency(self::$values["CURRENCY"]);
+		//self::$o_erip->money->setCurrency(self::$values["CURRENCY"]);
 		self::$o_erip->money->setAmount(self::$values["PRICE"]);
 	}
 
@@ -151,10 +136,8 @@ class Handlers
 
 	static public function set_expired_at()
 	{
-		$expired_at = \Bitrix\Main\Config\Option::get( self::$module_id, "expired_at");
-
-		if($expired_at != "")
-			self::$o_erip->expired_at = str_replace(" ", "T", ConvertDateTime($expired_at, "YYYY-MM-DD HH:MI:SS")) . "+03:00";
+		$expired_at = (int)\Bitrix\Main\Config\Option::get( self::$module_id, "expired_at");
+		self::$o_erip->expired_at = date("Y-m-d", $expired_at*24*3600 + time()) . "T00:00:00+03:00";
 	}
 
 	static public function setUserInfo()
@@ -202,4 +185,61 @@ class Handlers
       }
       return false;
   }
+
+  	static public function set_and_send()
+  	{
+  		static::setTehnicalInfo();
+
+		static::setUserInfo();
+		static::setMoneyInfo();
+		static::set_expired_at();
+
+		$r = self::$o_erip->submit();
+
+		self::$o_response = json_decode($r);
+
+		if(isset(self::$o_response->errors))
+			throw new \Exception(self::$o_response->message);
+  	}
+
+	static public function setEripOrderAutomatic($id, $status)
+	{
+		try
+		{
+			self::$o_erip = new \Dm\Erip();
+			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
+			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
+			self::$values = CSaleOrder::GetList(array(), array("ID" => $id), false, false, array("ID", "PAY_SYSTEM_ID", "PRICE", "CURRENCY", "STATUS_ID"))->Fetch();
+
+			if(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment &&
+				$status != self::$values["STATUS_ID"] &&
+				$status == self::$opt_status)
+			{
+				self::set_and_send();
+
+				$r = self::$o_erip->submit();
+				self::$o_response = json_decode($r);
+
+				if(isset(self::$o_response->errors))
+					throw new \Exception(self::$o_response->message);
+
+				if(CSaleOrder::Update($id, array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
+																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
+																"order_id: ". self::$o_response->transaction->order_id ."\n".
+																"account_number: ". self::$o_response->transaction->erip->account_number ."\n")))
+				{
+					static::sendMail();
+				}
+				
+				return true;
+			
+			}
+
+		}
+		catch(Exception $e)
+		{
+     		return $e->getMessage();
+		}
+
+	}
 }
