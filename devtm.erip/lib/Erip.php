@@ -12,6 +12,7 @@ class Erip extends CurlJsonRequest
 	public $service_info;
 	public $receipt;
 	public $order_id;
+	public $expired_at;
 
 	public function __construct()
 	{
@@ -37,6 +38,7 @@ class Erip extends CurlJsonRequest
 									"ip" => $this->costumer->ip,
 									"order_id" => $this->order_id,
 									"notification_url" => $this->notification_url,
+									"expired_at" => \Dm\Erip::to_utf8($this->expired_at),
 									"customer" => array(
 													"first_name" => \Dm\Erip::to_utf8($this->costumer->first_name),
 													"last_name" => \Dm\Erip::to_utf8($this->costumer->last_name),
