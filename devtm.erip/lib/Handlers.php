@@ -17,6 +17,8 @@ class Handlers
 
 	static public function chStatusNew($entity)
 	{
+		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика
+
 		try
 		{
       $fields = $entity->getFields();
@@ -50,6 +52,9 @@ class Handlers
 
 	static public function chStatusOld($id, $status)
 	{
+
+		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика		
+
 		try
 		{
 			self::$o_erip = new \Dm\Erip();
