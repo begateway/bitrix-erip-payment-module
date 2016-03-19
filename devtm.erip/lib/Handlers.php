@@ -1,6 +1,10 @@
 <?
+use Bitrix\Main\Localization\Loc;
+Loc::loadMessages(__FILE__);
+
 \Bitrix\Main\Loader::includeModule("devtm.erip");
 \Bitrix\Main\Loader::includeModule("sale");
+
 
 class Handlers
 {
@@ -59,12 +63,6 @@ class Handlers
 			{
 				self::set_and_send();
 
-				$r = self::$o_erip->submit();
-				self::$o_response = json_decode($r);
-
-				if(isset(self::$o_response->errors))
-					throw new \Exception(self::$o_response->message);
-
 				if(CSaleOrder::Update($id, array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
 																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
 																"order_id: ". self::$o_response->transaction->order_id ."\n".
@@ -121,7 +119,7 @@ class Handlers
 		self::$o_erip->setLogin(\Bitrix\Main\Config\Option::get( self::$module_id, "shop_id"));
 		self::$o_erip->setPassword(\Bitrix\Main\Config\Option::get( self::$module_id, "shop_key"));
 		self::$o_erip->setAddress4Send(\Bitrix\Main\Config\Option::get( self::$module_id, "address_for_send"));
-		self::$o_erip->description = "order: ".self::$values["ID"];
+		self::$o_erip->description = Loc::getMessage("DEVTM_ERIP_ORDER_DESCRIPTION", array("#ORDER_ID#" => self::$values["ID"]));
 
 		$notification_url = \Bitrix\Main\Config\Option::get( self::$module_id, "notification_url");
 		$notification_url = str_replace('bitrix.local', 'bitrix.webhook.begateway.com:8443', $notification_url);
@@ -216,12 +214,6 @@ class Handlers
 				$status == self::$opt_status)
 			{
 				self::set_and_send();
-
-				$r = self::$o_erip->submit();
-				self::$o_response = json_decode($r);
-
-				if(isset(self::$o_response->errors))
-					throw new \Exception(self::$o_response->message);
 
 				if(CSaleOrder::Update($id, array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
 																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".

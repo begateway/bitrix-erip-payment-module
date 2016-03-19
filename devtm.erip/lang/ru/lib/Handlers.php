@@ -1,0 +1,3 @@
+<?
+$MESS["DEVTM_ERIP_ORDER_DESCRIPTION"] = "Заказ #:#ORDER_ID#";
+
