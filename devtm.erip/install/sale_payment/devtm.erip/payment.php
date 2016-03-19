@@ -2,6 +2,8 @@
 use \Bitrix\Main\Localization\Loc;
 Loc::loadMessages(__FILE__);
 
+CModule::IncludeModule("sale");
+
 $module_id = "devtm.erip";
 
 $automatic = \Bitrix\Main\Config\Option::get($module_id, "set_automatic");
@@ -30,10 +32,11 @@ if($automatic == "Y")
 		$result = Handlers::setEripOrderAutomatic($order_id, $status);
 		if($result === true)
 		{
+			$GLOBALS["STOP_ERIP_HANDLER"] = true; //отмена запуска обработчика
 			//Сохранение статуса заказа
-			CModule::IncludeModule("sale");
 			CSaleOrder::Update($order_id, array("STATUS_ID" => $status));
 			echo $message_ok;
+			unsent($GLOBALS["STOP_ERIP_HANDLER"]);
 		}
 		else
 		{
