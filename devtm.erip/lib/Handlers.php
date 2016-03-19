@@ -112,7 +112,7 @@ class Handlers
 
 	static public function setMoneyInfo()
 	{
-		//self::$o_erip->money->setCurrency(self::$values["CURRENCY"]);
+		self::$o_erip->money->setCurrency(self::$values["CURRENCY"]);
 		self::$o_erip->money->setAmount(self::$values["PRICE"]);
 	}
 
@@ -137,7 +137,7 @@ class Handlers
 	static public function set_expired_at()
 	{
 		$expired_at = (int)\Bitrix\Main\Config\Option::get( self::$module_id, "expired_at");
-		self::$o_erip->expired_at = date("Y-m-d", $expired_at*24*3600 + time()) . "T00:00:00+03:00";
+		self::$o_erip->expired_at = date("Y-m-d", ($expired_at+1)*24*3600 + time()) . "T00:00:00+03:00";
 	}
 
 	static public function setUserInfo()
