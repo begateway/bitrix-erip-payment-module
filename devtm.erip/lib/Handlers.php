@@ -17,7 +17,7 @@ class Handlers
 
 	static public function chStatusNew($entity)
 	{
-		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика
+		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика
 
 		try
 		{
@@ -34,6 +34,8 @@ class Handlers
 				
 				self::set_and_send();
 
+				$GLOBALS["STOP_ERIP_HANDLER"] = true;
+
 				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
 																"transaction_id: ". self::$o_response->transaction->transaction_id ."\n".
 																"order_id: ". self::$o_response->transaction->order_id ."\n".
@@ -42,6 +44,7 @@ class Handlers
 					static::sendMail();
 				}
 				return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::SUCCESS);
+	
 			}
 
 		}catch(Exception $e){
@@ -53,7 +56,7 @@ class Handlers
 	static public function chStatusOld($id, $status)
 	{
 
-		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика		
+		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика		
 
 		try
 		{
@@ -61,6 +64,8 @@ class Handlers
 			self::$opt_status = \Bitrix\Main\Config\Option::get( self::$module_id, "order_status_code_erip");
 			self::$opt_payment = \Bitrix\Main\Config\Option::get( self::$module_id, "payment_system_id");
 			self::$values = CSaleOrder::GetList(array(), array("ID" => $id), false, false, array("ID", "PAY_SYSTEM_ID", "PRICE", "CURRENCY", "STATUS_ID"))->Fetch();
+
+			$GLOBALS["STOP_ERIP_HANDLER"] = true;
 
 			if(self::$values["PAY_SYSTEM_ID"] == self::$opt_payment &&
 				$status != self::$values["STATUS_ID"] &&

@@ -36,7 +36,7 @@ if($automatic == "Y")
 			//Сохранение статуса заказа
 			CSaleOrder::Update($order_id, array("STATUS_ID" => $status));
 			echo $message_ok;
-			unsent($GLOBALS["STOP_ERIP_HANDLER"]);
+
 		}
 		else
 		{
