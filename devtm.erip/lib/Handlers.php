@@ -17,7 +17,9 @@ class Handlers
 
 	static public function chStatusNew($entity)
 	{
-		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика
+		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика
+
+		$GLOBALS["STOP_ERIP_HANDLER"] = true;
 
 		try
 		{
@@ -42,6 +44,7 @@ class Handlers
 					static::sendMail();
 				}
 				return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::SUCCESS);
+	
 			}
 
 		}catch(Exception $e){
@@ -53,8 +56,10 @@ class Handlers
 	static public function chStatusOld($id, $status)
 	{
 
-		if($GLOBALS["STOP_ERIP_HANDLER"]) return true; //отмена запуска обработчика		
+		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика		
 
+		$GLOBALS["STOP_ERIP_HANDLER"] = true;
+		
 		try
 		{
 			self::$o_erip = new \Dm\Erip();
@@ -207,6 +212,7 @@ class Handlers
 
 	static public function setEripOrderAutomatic($id, $status)
 	{
+
 		try
 		{
 			self::$o_erip = new \Dm\Erip();

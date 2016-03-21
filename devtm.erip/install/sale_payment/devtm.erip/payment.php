@@ -36,13 +36,13 @@ if($automatic == "Y")
 			//Сохранение статуса заказа
 			CSaleOrder::Update($order_id, array("STATUS_ID" => $status));
 			echo $message_ok;
-			unset($GLOBALS["STOP_ERIP_HANDLER"]);
+
 		}
 		else
 		{
-      echo "<div class='erip-error'>";
+    	  echo "<div class='erip-error'>";
 			ShowError(Loc::getMessage("DEVTM_ERIP_ERROR_TEXT", array("#ERROR#" => $result)));
-      echo "</div>";
+    	  echo "</div>";
 		}
 	}
 	else
