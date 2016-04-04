@@ -40,12 +40,12 @@ class Erip extends CurlJsonRequest
 									"notification_url" => $this->notification_url,
 									"expired_at" => \Dm\Erip::to_utf8($this->expired_at),
 									"customer" => array(
-													"first_name" => \Dm\Erip::to_utf8($this->costumer->first_name),
-													"last_name" => \Dm\Erip::to_utf8($this->costumer->last_name),
+													"first_name" => \Dm\Erip::to_utf8($this->costumer->first_name, 30),
+													"last_name" => \Dm\Erip::to_utf8($this->costumer->last_name, 30),
 													"country" => \Dm\Erip::to_utf8($this->costumer->getCountry()),
 													"city" => \Dm\Erip::to_utf8($this->costumer->city),
 													"zip" => \Dm\Erip::to_utf8($this->costumer->zip),
-													"address" => \Dm\Erip::to_utf8($this->costumer->address),
+													"address" => \Dm\Erip::to_utf8($this->costumer->address, 255),
 													"phone" => \Dm\Erip::to_utf8($this->costumer->phone),
 												  ),
 									"payment_method" => array(
@@ -66,9 +66,12 @@ class Erip extends CurlJsonRequest
 		return $p;
 	}
 
-  public static function to_utf8($param)
+  public static function to_utf8($param, $size = 0)
   {
     $in = $param;
+    if ($size > 0) {
+      $in = substr($in, 0, $size);
+    }
     if (strtolower(LANG_CHARSET) == 'windows-1251') {
       $in = mb_convert_encoding($in, 'UTF-8', 'WINDOWS-1251');
     }
