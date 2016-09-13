@@ -16,7 +16,7 @@ class Money
 	public function getAmount()
 	{
 		$amount = ($this->currency == "BYR") ? $this->amount : $this->amount * 100;
-    return (int)$amount;
+    return intval(strval($amount));
 	}
 
 	public function setCurrency($currency)
