@@ -95,6 +95,7 @@ class devtm_erip extends CModule
 		$fields = array(
 					"PAY_SYSTEM_ID" => $psid,
 					"NAME" => Loc::getMessage("DEVTM_ERIP_PS_ACTION_NAME"),
+          "DESCRIPTION" => Loc::getMessage("DEVTM_ERIP_PS_DESC"),
 					"ACTION_FILE" => "/bitrix/php_interface/include/sale_payment/".$this->MODULE_ID,
 					"NEW_WINDOW" => "N",
 					"HAVE_PREPAY" => "N",
