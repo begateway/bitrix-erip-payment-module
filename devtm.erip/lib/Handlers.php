@@ -33,7 +33,7 @@ class Handlers
 				$old_values["STATUS_ID"] != self::$values["STATUS_ID"] &&
 				self::$values["PAY_SYSTEM_ID"] == self::$opt_payment)
 			{
-				
+
 				self::set_and_send();
 
 				if(\Bitrix\Sale\Internals\OrderTable::update(self::$values["ID"], array("COMMENTS" => "status: ". self::$o_response->transaction->status ."\n".
@@ -44,10 +44,10 @@ class Handlers
 					static::sendMail();
 				}
 				return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::SUCCESS);
-	
+
 			}
 
-		}catch(Exception $e){
+		}catch(\Exception $e){
       $error = new \Bitrix\Sale\ResultError($e->getMessage(), $values['ID']);
       return new \Bitrix\Main\EventResult(\Bitrix\Main\EventResult::ERROR, array('ERROR' => $error), 'sale');
 		}
@@ -56,10 +56,10 @@ class Handlers
 	static public function chStatusOld($id, $status)
 	{
 
-		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика		
+		if($GLOBALS["STOP_ERIP_HANDLER"] === true) return true; //отмена запуска обработчика
 
 		$GLOBALS["STOP_ERIP_HANDLER"] = true;
-		
+
 		try
 		{
 			self::$o_erip = new \Dm\Erip();
@@ -83,7 +83,7 @@ class Handlers
 				return true;
 			}
 
-		}catch(Exception $e){
+		}catch(\Exception $e){
       return self::report_error($e->getMessage());
 		}
 	}
@@ -132,6 +132,7 @@ class Handlers
 		self::$o_erip->description = Loc::getMessage("DEVTM_ERIP_ORDER_DESCRIPTION", array("#ORDER_ID#" => self::$values["ID"]));
 
 		$notification_url = \Bitrix\Main\Config\Option::get( self::$module_id, "notification_url");
+		$notification_url = str_replace('bitrix16.local', 'bitrix16.webhook.begateway.com:8443', $notification_url);
 		$notification_url = str_replace('bitrix.local', 'bitrix.webhook.begateway.com:8443', $notification_url);
 
 		self::$o_erip->notification_url = $notification_url;
@@ -185,18 +186,18 @@ class Handlers
 	}
 
   static public function report_error($msg = '') {
-      ShowMessage($msg);
       if (class_exists('\Bitrix\Sale\UserMessageException')) {
         throw new \Bitrix\Sale\UserMessageException($msg);
       } else {
         throw new \Bitrix\Sale\SystemException($msg);
       }
+      ShowMessage($msg);
       return false;
   }
 
-  	static public function set_and_send()
-  	{
-  		static::setTehnicalInfo();
+	static public function set_and_send()
+	{
+		static::setTehnicalInfo();
 
 		static::setUserInfo();
 		static::setMoneyInfo();
@@ -208,7 +209,14 @@ class Handlers
 
 		if(isset(self::$o_response->errors))
 			throw new \Exception(self::$o_response->message);
-  	}
+
+    if (!isset(self::$o_response->transaction->status))
+			throw new \Exception(Loc::getMessage("DEVTM_ERIP_UNKNOWN_RESPONSE"));
+
+    if (self::$o_response->transaction->status != 'pending')
+			throw new \Exception(Loc::getMessage("DEVTM_ERIP_NOT_PENDING_RESPONSE"));
+
+	}
 
 	static public function setEripOrderAutomatic($id, $status)
 	{
@@ -233,13 +241,13 @@ class Handlers
 				{
 					static::sendMail();
 				}
-				
+
 				return true;
-			
+
 			}
 
 		}
-		catch(Exception $e)
+		catch(\Exception $e)
 		{
      		return $e->getMessage();
 		}
