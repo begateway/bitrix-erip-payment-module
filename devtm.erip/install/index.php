@@ -68,8 +68,12 @@ class devtm_erip extends CModule
 		if($order["ID"] > 0)
 			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_PAMENT_ERROR"));
 
-		if(!CSalePaySystem::Delete($ps_id))
-			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_PAMENT2_ERROR"));
+    // verify that there is a payment system to delete
+    if ($arPaySys = CSalePaySystem::GetByID($ps_id))
+    {
+  		if(!CSalePaySystem::Delete($ps_id))
+  			throw new Exception(Loc::getMessage("DEVTM_ERIP_DELETE_PAMENT2_ERROR"));
+    }
 
 		return true;
 	}
