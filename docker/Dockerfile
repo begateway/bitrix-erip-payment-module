@@ -22,6 +22,11 @@ RUN apt-get update && apt-get install -y \
 #ADD business_encode.tar.gz /var/www/html/
 ADD https://www.1c-bitrix.ru/download/business_encode.tar.gz /var/www/html/
 
+WORKDIR "/var/www/html/"
+
+RUN tar xfz business_encode.tar.gz && \
+    rm business_encode.tar.gz
+
 ADD ./configs/php_bitrix.ini /usr/local/etc/php/conf.d/
 
 RUN mkdir -p /var/www/html/bitrix/php_interface/include/sale_payment/ && \
