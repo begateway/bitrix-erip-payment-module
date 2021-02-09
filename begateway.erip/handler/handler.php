@@ -2,6 +2,7 @@
 namespace Sale\Handlers\PaySystem;
 
 use Bitrix\Main,
+  Bitrix\Main\ModuleManager,
 	Bitrix\Main\Web\HttpClient,
 	Bitrix\Main\Localization\Loc,
 	Bitrix\Sale,
@@ -13,6 +14,8 @@ use Bitrix\Main,
 	Bitrix\Sale\PriceMaths;
 
 Loc::loadMessages(__FILE__);
+
+\CModule::IncludeModule('begateway.erip');
 
 /**
  * Class BePaidHandler
@@ -47,16 +50,16 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 
     if ($this->isAutoMode($payment)) {
   		$createEripBillResult = $this->createEripBill($payment);
-  		if (!$createPaymentTokenResult->isSuccess())
+  		if (!$createEripBillResult->isSuccess())
   		{
   			$result->addErrors($createEripBillResult->getErrors());
   			return $result;
   		}
 
   		$createEripBillData = $createEripBillResult->getData();
-  		if (!empty($createEripBillResult['transaction']['uid']))
+  		if (!empty($createEripBillData['transaction']['uid']))
   		{
-  			$result->setPsData(['PS_INVOICE_ID' => $createEripBillResult['transaction']['uid']]);
+  			$result->setPsData(['PS_INVOICE_ID' => $createEripBillData['transaction']['uid']]);
   		}
 
   		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
@@ -111,7 +114,8 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 			'currency' => $payment->getField('CURRENCY'),
       'instruction' => $eripBillData['transaction']['erip']['instruction'],
       'qr_code' => $eripBillData['transaction']['erip']['qr_code'],
-      'account_number' => $eripBillData['transaction']['erip']['account_number']
+      'account_number' =>  $eripBillData['transaction']['erip']['account_number'],
+      'service_no_erip' => $eripBillData['transaction']['erip']['service_no_erip']
 		];
 
 		return $params;
@@ -141,6 +145,7 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 				'notification_url' => $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_NOTIFICATION_URL'),
 				'language' => LANGUAGE_ID,
         'email' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_EMAIL')),
+        'ip' => $_SERVER['HTTP_CLIENT_IP'] ? : ($_SERVER['HTTP_X_FORWARDED_FOR'] ? : $_SERVER['REMOTE_ADDR']),
         'customer' => [
           'first_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST')),
           'middle_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')),
@@ -178,6 +183,12 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
     $service_code = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SERVICE_CODE');
     if (isset($service_code) && !empty(trim($service_code))) {
       $params['request']['payment_method']['service_no'] = $service_code;
+    }
+
+    $timeout = intval($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_EXPIRY'));
+
+    if ($timeout > 0) {
+      $params['request']['expired_at'] = date("c", $timeout*60 + time());
     }
 
 		$headers = $this->getHeaders($payment);
@@ -348,6 +359,25 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 		$inputStream = static::readFromStream();
 		$data = static::decode($inputStream);
 		$transaction = $data['transaction'];
+
+    # TODO: verify signature
+
+    $signature  = base64_decode($_SERVER['CONTENT_SIGNATURE']);
+    $public_key = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_PUBLIC_KEY');
+    $public_key = str_replace(array("\r\n", "\n"), '', $public_key);
+    $public_key = chunk_split($public_key, 64);
+    $public_key = "-----BEGIN PUBLIC KEY-----\n" . $public_key . "-----END PUBLIC KEY-----";
+    $key = openssl_pkey_get_public($public_key);
+
+    if (openssl_verify($inputStream, $signature, $key, OPENSSL_ALGO_SHA256) != 1) {
+			$result->addError(
+				PaySystem\Error::create(
+					Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_ERROR_SIGNATURE')
+				)
+			);
+
+      return $result;
+    }
 
 		$beGatewayEripPaymentResult = $this->getBeGatewayEripPayment($payment);
 		if ($beGatewayEripPaymentResult->isSuccess())

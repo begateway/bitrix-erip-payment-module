@@ -15,8 +15,9 @@ $sum = round($params['sum'], 2);
 	) ?></p>
 	<p><?= Loc::getMessage('SALE_HANDLERS_PAY_SYSTEM_TEMPLATE_BEGATEWAY_ERIP_INSTRUCTION',
 		[
-			'#INSTRUCTION#' => SaleFormatCurrency($sum, $params['instruction']),
-			'#ACCOUNT_NUMBER#' => SaleFormatCurrency($sum, $params['account_number']),
+			'#INSTRUCTION#' => implode('<br>', $params['instruction']),
+			'#ACCOUNT_NUMBER#' => $params['account_number'],
+      '#ERIP_SERVICE_CODE#' => $params['service_no_erip']
 		]
 	) ?></p>
   <?
