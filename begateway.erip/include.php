@@ -1,12 +1,12 @@
 <?
-
 $classes = array(
-				"\DM\CurlJsonRequest" => "lib/CurlJsonRequest.php",
-				"\DM\Costumer" => "lib/Costumer.php",
-				"\DM\Erip" => "lib/Erip.php",
-				"\DM\Money" => "lib/Money.php",
-				"\DM\Webhook" => "lib/Webhook.php",
-				"Handlers" => "lib/Handlers.php",
+				#'\BeGateway\Module\Erip\CurlJsonRequest' => 'lib/CurlJsonRequest.php',
+				#'\BeGateway\Module\Erip\Customer' => 'lib/Customer.php',
+				#'\BeGateway\Module\Erip\Money' => 'lib/Money.php',
+				#'\BeGateway\Module\Erip\Erip' => 'lib/Erip.php',
+				#'\BeGateway\Module\Erip\Webhook' => 'lib/Webhook.php',
+				#'\BeGateway\Module\Erip\Handlers' => 'lib/Handlers.php',
+				'\BeGateway\Module\Erip\Encoder' => 'lib/encoder.php'
 		   );
 
-CModule::AddAutoloadClasses("devtm.erip", $classes);
+CModule::AddAutoloadClasses('begateway.erip', $classes);

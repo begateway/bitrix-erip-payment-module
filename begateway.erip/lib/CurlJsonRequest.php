@@ -1,5 +1,5 @@
 <?
-namespace Dm;
+namespace BeGateway\Module\Erip;
 
 class CurlJsonRequest
 {

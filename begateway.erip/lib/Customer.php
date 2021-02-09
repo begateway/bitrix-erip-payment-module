@@ -1,10 +1,11 @@
 <?
-namespace Dm;
+namespace BeGateway\Module\Erip;
 
-class Costumer
+class Customer
 {
 	public $first_name;
 	public $last_name;
+	public $middle_name;
 	public $city;
 	public $zip;
 	public $address;

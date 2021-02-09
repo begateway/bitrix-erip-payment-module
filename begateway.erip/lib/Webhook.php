@@ -1,5 +1,5 @@
 <?
-namespace DM;
+namespace BeGateway\Module\Erip;
 
 class Webhook
 {
@@ -7,7 +7,7 @@ class Webhook
 	protected $login;
 	protected $password;
 	public $response;
-	
+
 	public function __construct( $login, $password )
 	{
 		$this->login = $login;
@@ -15,13 +15,13 @@ class Webhook
 		$this->decodeReceivedJson();
 	}
 
-	public function isAuthorized() 
+	public function isAuthorized()
 	{
 		return $this->getLoginFromAuthorization() == $this->login
 			   && $this->getPasswordFromAuthorization() == $this->password;
 	}
 
-	public function decodeReceivedJson() 
+	public function decodeReceivedJson()
 	{
 		$this->response = json_decode(file_get_contents($this->_json_in));
 	}
