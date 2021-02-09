@@ -1,6 +1,7 @@
 <?php
 use Bitrix\Main\Localization\Loc;
 
+require_once(__DIR__ . '/../include.php');
 Loc::loadMessages(__FILE__);
 
 if (!CModule::IncludeModule("sale")) return false;
@@ -15,6 +16,7 @@ class begateway_erip extends CModule
 	public $MODULE_GROUP_RIGHTS = 'N';
 
   const ORDER_AWAITING_STATUS = 'EA';
+  const ORDER_CANCELED_STATUS = 'EC';
 
   function __construct()
 	{
@@ -87,7 +89,7 @@ class begateway_erip extends CModule
 
 	protected function addOStatus()
 	{
-    $result = Bitrix\Main\Localization\LanguageTable::getList(array(
+    $result = \Bitrix\Main\Localization\LanguageTable::getList(array(
       'select' => array('LID'),
       'filter' => array('=ACTIVE' => 'Y'),
     ));
@@ -96,31 +98,40 @@ class begateway_erip extends CModule
 
     while ($row = $result->Fetch()) {
       $languageId = $row['LID'];
-      Bitrix\Main\Localization\Loc::loadLanguageFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/'.$this->MODULE_ID.'/install/install.php', $languageId);
-      foreach (array(self::ORDER_AWAITING_STATUS) as $statusId) {
-        if ($statusName = \BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS") {
+      \Bitrix\Main\Localization\Loc::loadLanguageFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/'.$this->MODULE_ID.'/install/install.php', $languageId);
+      foreach (array(self::ORDER_AWAITING_STATUS, self::ORDER_CANCELED_STATUS) as $statusId) {
+        if ($statusName = \BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS")) {
           $statusLanguages[$statusId] []= array(
             'LID'         => $languageId,
             'NAME'        => $statusName,
-            'DESCRIPTION' => \BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS_DESC"),
+            'DESCRIPTION' => \BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS_DESC")
           );
         }
       }
     }
 
-    return CSaleStatus::Add(array(
+    $result = CSaleStatus::Add(array(
       'ID'     => self::ORDER_AWAITING_STATUS,
       'SORT'   => 1500,
       'NOTIFY' => 'Y',
       'LANG'   => $statusLanguages[$orderAwaitingStatus],
     ));
+
+    $result = $result && CSaleStatus::Add(array(
+      'ID'     => self::ORDER_CANCELED_STATUS,
+      'SORT'   => 1600,
+      'NOTIFY' => 'Y',
+      'LANG'   => $statusLanguages[$orderAwaitingStatus],
+    ));
+
+    return $result;
 	}
 
 	protected function deleteOStatus()
 	{
     $result = \Bitrix\Sale\Order::loadByFilter(array(
       'filter' => array('=STATUS_ID' => self::ORDER_AWAITING_STATUS)
-    );
+    ));
 
     if (!empty($result))
       throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR'));

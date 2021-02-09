@@ -1,10 +1,12 @@
 <?
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MODULE"] = 'Модуль платёжной системы ЕРИП';
-$MESS["SALE_HPS_BEGATEWAY_ERIP_MODULE_DESC"] = 'Модуль платёжной системы ЕРИП. Сервис bePaid.by';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_MODULE_DESC"] = 'Прием ЕРИП платежей через сервис bePaid';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_PARTNER_NAME"] = 'bePaid';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_PARTNER_URI"] = 'https://bepaid.by/';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS"] = '[EРИП] Ожидание оплаты';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_DESC"] = 'Статус ожидания оплаты системы ЕРИП';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_EC_STATUS"] = '[EРИП] Счет отменен';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_DESC"] = 'Счет на оплату через ЕРИП был отменен';
 
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR"] = 'Произошла ошибка при удалении статуса заказа "[ЕРИП] Ожидание оплаты" так как в системе существуют заказы с данным статусом. Удалите такие заказы или смените у них статус, а потом повторите операцию удаления модуля.';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR_2"] = 'Произошла ошибка при удалении статуса заказа "[ЕРИП] Ожидание оплаты"';

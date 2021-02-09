@@ -1,5 +1,6 @@
 <?
-namespace \BeGateway\Module\Erip;
+namespace BeGateway\Module\Erip;
+use Bitrix\Main\Localization\Loc;
 
 class Encoder {
   public static function GetEncodeMessage($text) {
