@@ -6,7 +6,8 @@ $classes = array(
 				#'\BeGateway\Module\Erip\Erip' => 'lib/Erip.php',
 				#'\BeGateway\Module\Erip\Webhook' => 'lib/Webhook.php',
 				#'\BeGateway\Module\Erip\Handlers' => 'lib/Handlers.php',
-				'\BeGateway\Module\Erip\Encoder' => 'lib/encoder.php'
+				'\BeGateway\Module\Erip\Encoder' => 'lib/encoder.php',
+				'\BeGateway\Module\Erip\OrderStatuses' => 'lib/order_statuses.php'
 		   );
 
 CModule::AddAutoloadClasses('begateway.erip', $classes);

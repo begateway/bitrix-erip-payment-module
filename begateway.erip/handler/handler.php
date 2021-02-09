@@ -63,8 +63,12 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
   		}
 
   		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
+
+      $order = $payment->getOrder();
+      $order->setField('STATUS_ID', \BeGateway\Module\Erip\OrderStatuses::ORDER_AWAITING_STATUS);
+      $order->save();
     }
-    
+
 		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
 		if ($showTemplateResult->isSuccess())
 		{
