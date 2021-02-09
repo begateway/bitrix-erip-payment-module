@@ -36,15 +36,16 @@ class begateway_erip extends CModule
 		$this->MODULE_DESCRIPTION = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_MODULE_DESC');
     $this->PARTNER_NAME = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_NAME');
     $this->PARTNER_URI = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_URI');
-    $this->PAYMENT_HANDLER_PATH = $_SERVER['DOCUMENT_ROOT'] . '/bitrix/php_interface/include/sale_payment/' . $this->MODULE_ID . '/';
+    $this->PAYMENT_HANDLER_PATH = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/php_interface/include/sale_payment/" . str_replace(".", "_", $this->MODULE_ID) . "/";
 	}
 
 
 	protected function copyHandlerFiles()
 	{
 		return CopyDirFiles(
-					$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$this->MODULE_ID."/install/sale_payment/",
-					$_SERVER["DOCUMENT_ROOT"]."/bitrix/php_interface/include/sale_payment",
+					$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$this->MODULE_ID."/install/sale_payment/".$this->MODULE_ID,
+          $this->PAYMENT_HANDLER_PATH,
+					#$_SERVER["DOCUMENT_ROOT"]."/bitrix/php_interface/include/sale_payment",
 					true, true
 				);
 	}

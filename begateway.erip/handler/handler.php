@@ -18,7 +18,7 @@ Loc::loadMessages(__FILE__);
  * Class BePaidHandler
  * @package Sale\Handlers\PaySystem
  */
-class BeGatewayEripHandler extends PaySystem\ServiceHandler
+class begateway_eripHandler extends PaySystem\ServiceHandler
 {
 	private const API_URL                = 'https://api.bepaid.by';
 
@@ -90,7 +90,7 @@ class BeGatewayEripHandler extends PaySystem\ServiceHandler
 	 */
   private function isAutoMode(Payment $payment)
   {
-    return $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL') == 'Y'
+    return $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL') == 'Y';
   }
 
 	/**
@@ -619,7 +619,7 @@ class BeGatewayEripHandler extends PaySystem\ServiceHandler
 	{
 		return [
 			'sendEripBill' => self::API_URL.'/beyag/payments',
-      'getEripBillStatus' => self:API_URL.'/beyag/payments/#uid#'
+      'getEripBillStatus' => self::API_URL.'/beyag/payments/#uid#'
 		];
 	}
 

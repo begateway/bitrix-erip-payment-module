@@ -1,5 +1,5 @@
 <?
-$MESS['SALE_HPS_BEGATEWAY_ERIP'] = 'Прием платежей через ЕРИП';
+$MESS['SALE_HPS_BEGATEWAY_ERIP'] = 'Оплата через ЕРИП (сервис bePaid)';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_SHOP_ID'] = 'ID магазина';
 $MESS['SALE_HPS_BEGATEWAY_SHOP_ID_DESC'] = '';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_SECRET_KEY'] = 'Секретный ключ магазина';
@@ -13,6 +13,7 @@ $MESS['SALE_HPS_BEGATEWAY_ERIP_PAYMENT_DESCRIPTION_DESC'] = 'Текст може
 $MESS['SALE_HPS_BEGATEWAY_ERIP_PAYMENT_DESCRIPTION_TEMPLATE'] = 'Оплата №#PAYMENT_NUMBER# заказа №#ORDER_NUMBER# для #USER_EMAIL#';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_PAYMENT_ACCOUNT'] = 'Идентификатор для оплаты в ЕРИП';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_PAYMENT_ACCOUNT_DESC'] = 'Текст может содержать метки: #PAYMENT_ID# - ID оплаты, #ORDER_ID# - ID заказа, #PAYMENT_NUMBER# - номер оплаты, #ORDER_NUMBER# - номер заказа, #USER_EMAIL# - Email покупателя';
+$MESS['SALE_HPS_BEGATEWAY_ERIP_PAYMENT_ACCOUNT_TEMPLATE'] = '#ORDER_ID#';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_RECEIPT_PAYMENT_DESCRIPTION'] = 'Текст для чека';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_RECEIPT_PAYMENT_DESCRIPTION_DESC'] = 'Текст может содержать метки: #PAYMENT_ID# - ID оплаты, #ORDER_ID# - ID заказа, #PAYMENT_NUMBER# - номер оплаты, #ORDER_NUMBER# - номер заказа, #USER_EMAIL# - Email покупателя';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_RECEIPT_PAYMENT_DESCRIPTION_TEMPLATE'] = 'Спасибо за оплату №#PAYMENT_NUMBER# заказа №#ORDER_NUMBER# для #USER_EMAIL#';
