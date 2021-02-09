@@ -63,17 +63,17 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
   		}
 
   		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
-
-  		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
-  		if ($showTemplateResult->isSuccess())
-  		{
-  			$result->setTemplate($showTemplateResult->getTemplate());
-  		}
-  		else
-  		{
-  			$result->addErrors($showTemplateResult->getErrors());
-  		}
     }
+    
+		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
+		if ($showTemplateResult->isSuccess())
+		{
+			$result->setTemplate($showTemplateResult->getTemplate());
+		}
+		else
+		{
+			$result->addErrors($showTemplateResult->getErrors());
+		}
 
 		return $result;
 	}
