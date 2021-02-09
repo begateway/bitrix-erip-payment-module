@@ -52,7 +52,7 @@ class begateway_erip extends CModule
 
 	protected function deleteHandlerFiles()
 	{
-		DeleteDirFilesEx("/bitrix/php_interface/include/sale_payment/". $this->MODULE_ID);
+		DeleteDirFilesEx("/bitrix/php_interface/include/sale_payment/" . str_replace(".", "_", $this->MODULE_ID));
 		return true;
 	}
 
@@ -115,14 +115,14 @@ class begateway_erip extends CModule
       'ID'     => self::ORDER_AWAITING_STATUS,
       'SORT'   => 1500,
       'NOTIFY' => 'Y',
-      'LANG'   => $statusLanguages[$orderAwaitingStatus],
+      'LANG'   => $statusLanguages[self::ORDER_AWAITING_STATUS],
     ));
 
     $result = $result && CSaleStatus::Add(array(
       'ID'     => self::ORDER_CANCELED_STATUS,
       'SORT'   => 1600,
       'NOTIFY' => 'Y',
-      'LANG'   => $statusLanguages[$orderAwaitingStatus],
+      'LANG'   => $statusLanguages[self::ORDER_CANCELED_STATUS],
     ));
 
     return $result;
@@ -130,15 +130,17 @@ class begateway_erip extends CModule
 
 	protected function deleteOStatus()
 	{
-    $result = \Bitrix\Sale\Order::loadByFilter(array(
-      'filter' => array('=STATUS_ID' => self::ORDER_AWAITING_STATUS)
-    ));
+    foreach (array(self::ORDER_AWAITING_STATUS, self::ORDER_CANCELED_STATUS) as $statusId) {
+      $result = \Bitrix\Sale\Order::loadByFilter(array(
+        'filter' => array('=STATUS_ID' => $statusId)
+      ));
 
-    if (!empty($result))
-      throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR'));
+      if (!empty($result))
+        throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS_ERROR"));
 
-		if(!CSaleStatus::Delete(self::ORDER_AWAITING_STATUS))
-			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR_2'));
+  		if(!CSaleStatus::Delete($statusId))
+  			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS_ERROR_2"));
+    }
 
 		return true;
 	}
@@ -254,9 +256,6 @@ class begateway_erip extends CModule
 			if( ! function_exists("json_decode") )
 				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_JSON_NOT_INSTALL_ERROR"));
 
-			//регистраниция модуля
-			\Bitrix\Main\ModuleManager::registerModule($this->MODULE_ID);
-
 			//копируем файлы обработчика платежной системы
 			if(!$this->copyHandlerFiles())
 				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_COPY_ERROR_MESS"));
@@ -265,6 +264,8 @@ class begateway_erip extends CModule
 			if(!$this->addOStatus())
 				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"));
 
+			//регистраниция модуля
+      RegisterModule($this->MODULE_ID);
 			// //Создание типа почтового события
 			// if($this->addMailEvType() === false)
 			// 	throw new Exception(Loc::getMessage("DEVTM_ERIP_MAIL_EVENT_ADD_ERROR"));
@@ -304,7 +305,8 @@ class begateway_erip extends CModule
 			$this->deleteHandlerFiles();
 
 			//удаление модуля из системы
-			Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
+			//Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
+      UnRegisterModule($this->MODULE_ID);
 			return true;
     }
 }

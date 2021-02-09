@@ -10,13 +10,15 @@ $MESS["SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_DESC"] = 'Счет на оплату ч
 
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR"] = 'Произошла ошибка при удалении статуса заказа "[ЕРИП] Ожидание оплаты" так как в системе существуют заказы с данным статусом. Удалите такие заказы или смените у них статус, а потом повторите операцию удаления модуля.';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_ERROR_2"] = 'Произошла ошибка при удалении статуса заказа "[ЕРИП] Ожидание оплаты"';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_ERROR"] = 'Произошла ошибка при удалении статуса заказа "[EРИП] Счет отменен" так как в системе существуют заказы с данным статусом. Удалите такие заказы или смените у них статус, а потом повторите операцию удаления модуля.';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_ERROR_2"] = 'Произошла ошибка при удалении статуса заказа "[EРИП] Счет отменен"';
 
 $MESS["SALE_HPS_BEGATEWAY_ERIP_SALE_MODULE_NOT_INSTALL_ERROR"] = "Для работы модуля требуется установленный модуль интернет-магазина";
 $MESS["SALE_HPS_BEGATEWAY_ERIP_CURL_NOT_INSTALL_ERROR"] = "Для работы модуля требуется библиотека cURL";
 $MESS["SALE_HPS_BEGATEWAY_ERIP_JSON_NOT_INSTALL_ERROR"] = "Для работы модуля требуется библиотека для работы с Json";
 
 $MESS["SALE_HPS_BEGATEWAY_ERIP_COPY_ERROR_MESS"] = 'Не удалось скопировать файлы обработчика платёжной системы';
-$MESS["SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"] = 'Не удалось создать статус заказа "[ЕРИП] Ожидание оплаты"';
+$MESS["SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"] = 'Не удалось создать статусы заказов"';
 
 
 $MESS["DEVTM_ERIP_PS_NAME"] = "Расчёт (ЕРИП)";
