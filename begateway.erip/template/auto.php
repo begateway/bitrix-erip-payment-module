@@ -2,6 +2,11 @@
 use Bitrix\Main\Localization\Loc;
 
 Loc::loadMessages(__FILE__);
+\CModule::IncludeModule('begateway.erip');
+
+for($i = 0; $i < count($params['instruction']); $i++) {
+  $params['instruction'][$i] = \BeGateway\Module\Erip\Encoder::GetEncodeText($params['instruction'][$i]);
+}
 
 $sum = round($params['sum'], 2);
 ?>
