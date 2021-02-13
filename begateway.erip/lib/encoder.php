@@ -3,20 +3,23 @@ namespace BeGateway\Module\Erip;
 use Bitrix\Main\Localization\Loc;
 
 class Encoder {
-  public static function GetEncodeMessage($text) {
-  	$siteEncode = SITE_CHARSET;
-  	$message = Loc::getMessage($text);
+  public static function GetEncodeMessage($message_id) {
+    return self::GetEncodeText(Loc::getMessage($message_id));
+  }
 
-    if(self::isUtf8($message)) {
+  public static function GetEncodeText($text) {
+  	$siteEncode = SITE_CHARSET;
+
+    if(self::isUtf8($text)) {
       $old_enc = 'UTF-8';
     } else {
       $old_enc = 'windows-1251';
     }
     if($siteEncode == $old_enc) {
-      return $message;
+      return $text;
     }
 
-  	return mb_convert_encoding( $message, $siteEncode, $old_enc);
+  	return mb_convert_encoding( $text, $siteEncode, $old_enc);
   }
 
   public static function toUtf8($text, $size = 0)

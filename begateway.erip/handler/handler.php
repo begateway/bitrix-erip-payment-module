@@ -44,11 +44,11 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	public function initiatePay(Payment $payment, Request $request = null): ServiceResult
+	public function initiatePay(Payment $payment, Request $request = null, $onEvent = false): ServiceResult
 	{
 		$result = new ServiceResult();
 
-    if ($this->isAutoMode($payment)) {
+    if ($this->isAutoMode($payment) || $onEvent) {
   		$createEripBillResult = $this->createEripBill($payment);
   		if (!$createEripBillResult->isSuccess())
   		{
@@ -60,13 +60,10 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
   		if (!empty($createEripBillData['transaction']['uid']))
   		{
   			$result->setPsData(['PS_INVOICE_ID' => $createEripBillData['transaction']['uid']]);
+        $result->setData($this->getTemplateParams($payment, $createEripBillData));
   		}
 
   		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
-
-      $order = $payment->getOrder();
-      $order->setField('STATUS_ID', \BeGateway\Module\Erip\OrderStatuses::ORDER_AWAITING_STATUS);
-      $order->save();
     }
 
 		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
@@ -114,12 +111,14 @@ class begateway_eripHandler extends PaySystem\ServiceHandler
 	private function getTemplateParams(Payment $payment, array $eripBillData): array
   {
 		$params = [
-			'sum' => PriceMaths::roundPrecision($payment->getSum()),
+			'sum' => PriceMaths::roundPrecision($payment->getSum() - $payment->getSumPaid()),
 			'currency' => $payment->getField('CURRENCY'),
       'instruction' => $eripBillData['transaction']['erip']['instruction'],
       'qr_code' => $eripBillData['transaction']['erip']['qr_code'],
       'account_number' =>  $eripBillData['transaction']['erip']['account_number'],
-      'service_no_erip' => $eripBillData['transaction']['erip']['service_no_erip']
+      'service_no_erip' => $eripBillData['transaction']['erip']['service_no_erip'],
+      'first_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST'),
+      'middle_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')
 		];
 
 		return $params;

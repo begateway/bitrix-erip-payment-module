@@ -53,38 +53,6 @@ class begateway_erip extends CModule
 		return true;
 	}
 
-	protected function addPaysysHandler( $psid )
-	{
-		$a_ps_act = array();
-		$fields = array(
-					"PAY_SYSTEM_ID" => $psid,
-					"NAME" => Loc::getMessage("DEVTM_ERIP_PS_ACTION_NAME"),
-          "DESCRIPTION" => Loc::getMessage("DEVTM_ERIP_PS_DESC"),
-					"ACTION_FILE" => "/bitrix/php_interface/include/sale_payment/".$this->MODULE_ID,
-					"NEW_WINDOW" => "N",
-					"HAVE_PREPAY" => "N",
-					"HAVE_RESULT" => "N",
-					"HAVE_ACTION" => "N",
-					"HAVE_PAYMENT" => "Y",
-					"HAVE_RESULT_RECEIVE" => "Y",
-					"ENCODING" => "utf-8",
-				 );
-		$db_pt = CSalePersonType::GetList(
-							array("SORT" => "ASC", "NAME" => "ASC"),
-							array()
-						);
-		while($pt = $db_pt->Fetch())
-		{
-			$fields["PERSON_TYPE_ID"] = $pt["ID"];
-			$id = CSalePaySystemAction::Add($fields);
-			if($id != false)
-				$a_ps_act[] = $id;
-
-		}
-
-		return $a_ps_act;
-	}
-
 	protected function addOStatus()
 	{
     $result = \Bitrix\Main\Localization\LanguageTable::getList(array(
@@ -142,168 +110,132 @@ class begateway_erip extends CModule
 		return true;
 	}
 
-	protected function addMailEvType()
-	{
-		foreach($this->lang_ids as $lang)
-		{
-			$f = array(
-					"LID" => $lang,
-					"EVENT_NAME" => $this->mail_event_name,
-					"NAME" => Loc::getMessage("DEVTM_ERIP_MAIL_EVENT_NAME"),
-					"DESCRIPTION" => Loc::getMessage("DEVTM_ERIP_MAIL_EVENT_DESC"),
-				);
-
-			$et = new CEventType;
-			if($et->Add($f) === false)
-				return false;
-		}
-
-		return true;
-	}
-
-	protected function deleteMailEvType()
-	{
-		$et = \Bitrix\Main\Config\Option::get( $this->MODULE_ID, "mail_event_name");
-		CEventType::Delete($et);
-		return true;
-	}
-
-	protected function addMailTemplate()
-	{
-		$ss = array();
-		$db_sites = CSite::GetList($by="sort", $order="desc", array());
-		while($s = $db_sites->Fetch())
-			$ss[] = $s["ID"];
-
-		$f = array(
-				"ACTIVE" => "Y",
-				"EVENT_NAME" => $this->mail_event_name,
-				"LID" => $ss,
-				"EMAIL_FROM" => "#DEFAULT_EMAIL_FROM#",
-				"EMAIL_TO" => "#EMAIL_TO#",
-				"SUBJECT" => Loc::getMessage("DEVTM_ERIP_MAIL_TEMPLATE_THEMA"),
-				"BODY_TYPE" => "html",
-				"MESSAGE" => Loc::getMessage("DEVTM_ERIP_MAIL_TEMPLATE_MESS"),
-			);
-
-		$o_mt = new CEventMessage;
-		return $o_mt->Add($f);
-	}
-
-	protected function deleteMailTemplate()
-	{
-		$mail_template_id = (int)\Bitrix\Main\Config\Option::get( $this->MODULE_ID, "mail_template_id");
-		CEventMessage::Delete($mail_template_id);
-		return true;
-	}
-
 	protected function addHandlers()
 	{
-		RegisterModuleDependences(
-			"sale",
-			"OnSaleOrderBeforeSaved",
-			$this->MODULE_ID,
-			"Handlers",
-			"chStatusNew",
-			200
-	   );
-
-	   //Совместимость со старым событием OnSaleBeforeStatusOrder
-	   RegisterModuleDependences(
-			"sale",
-			"OnSaleBeforeStatusOrder",
-			$this->MODULE_ID,
-			"Handlers",
-			"chStatusOld",
-			200
-	   );
+    $eventManager = \Bitrix\Main\EventManager::getInstance();
+    $eventManager->registerEventHandler('sale', 'OnBeforeSaleOrderSetField', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnBeforeSaleOrderSetField');
 
 		return true;
 	}
 
 	protected function deleteHandlers()
 	{
-		UnRegisterModuleDependences(
-			"sale",
-			"OnSaleOrderBeforeSaved",
-			$this->MODULE_ID,
-			"Handlers",
-			"chStatusNew"
-		);
-
-		//Совместимость со старым событием OnSaleBeforeStatusOrder
-		UnRegisterModuleDependences(
-			"sale",
-			"OnSaleBeforeStatusOrder",
-			$this->MODULE_ID,
-			"Handlers",
-			"chStatusOld"
-		);
+    $eventManager = \Bitrix\Main\EventManager::getInstance();
+    $eventManager->unRegisterEventHandler('sale', 'OnBeforeSaleOrderSetField', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnBeforeSaleOrderSetField');
 
 		return true;
 	}
 
-    public function DoInstall()
-    {
-			//Проверка зависимостей модуля
-			if( ! IsModuleInstalled("sale") )
-				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_SALE_MODULE_NOT_INSTALL_ERROR"));
-			if( ! function_exists("curl_init") )
-				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_CURL_NOT_INSTALL_ERROR"));
-			if( ! function_exists("json_decode") )
-				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_JSON_NOT_INSTALL_ERROR"));
+  protected function addMailEvent()
+	{
+    $dbEvent = CEventMessage::GetList($b="ID", $order="ASC", Array("EVENT_NAME" => \BeGateway\Module\Erip\Events::ORDER_STATUS_CHANGED_TO_EA));
+    $id = false;
 
-			//копируем файлы обработчика платежной системы
-			if(!$this->copyHandlerFiles())
-				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_COPY_ERROR_MESS"));
+    if(!($dbEvent->Fetch())) {
+      $langs = CLanguage::GetList(($b=""), ($o=""));
+      while($lang = $langs->Fetch()) {
+        $lid = $lang["LID"];
+        IncludeModuleLangFile(__FILE__, $lid);
 
-			//создание статуса заказа [ЕРИП]Ожидание оплаты
-			if(!$this->addOStatus())
-				throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"));
+        $et = new CEventType;
+        $et->Add(array(
+          "LID" => $lid,
+          "EVENT_NAME" => \BeGateway\Module\Erip\Events::ORDER_STATUS_CHANGED_TO_EA,
+          "NAME" => GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_NAME"),
+          "DESCRIPTION" => GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_DESC"),
+        ));
 
-			//регистраниция модуля
-      RegisterModule($this->MODULE_ID);
-			// //Создание типа почтового события
-			// if($this->addMailEvType() === false)
-			// 	throw new Exception(Loc::getMessage("DEVTM_ERIP_MAIL_EVENT_ADD_ERROR"));
-      //
-			// //сохранение названия типа почтового события в настройках модуля
-			// \Bitrix\Main\Config\Option::set( $this->MODULE_ID, "mail_event_name",  $this->mail_event_name);
-      //
-			// //создание почтового шаблона
-			// $mail_temp_id = $this->addMailTemplate();
-			// if($mail_temp_id === false)
-			// 	throw new Exception(Loc::getMessage("DEVTM_ERIP_MAIL_TEMPLATE_ADD_ERROR"));
-      //
-			// //сохранение ID почтового шаблона в настройках модуля
-			// \Bitrix\Main\Config\Option::set( $this->MODULE_ID, "mail_template_id",  $mail_temp_id);
-      //
-			// //регистрация обработчика обновления заказа
-			// if($this->addHandlers() === false)
-			// 	throw new Exception(Loc::getMessage("DEVTM_ERIP_HANDLERS_ADD_ERROR"));
-      return true;
+        $arSites = array();
+        $sites = CSite::GetList(($b=""), ($o=""), Array("LANGUAGE_ID"=>$lid));
+
+        while ($site = $sites->Fetch())
+          $arSites[] = $site["LID"];
+
+        if(count($arSites) > 0) {
+          $template = str_replace("#SITE_CHARSET#", $lang["CHARSET"], GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_HTML"));
+
+          $emess = new CEventMessage;
+          $id = $emess->Add(array(
+            "ACTIVE" => "Y",
+            "EVENT_NAME" => \BeGateway\Module\Erip\Events::ORDER_STATUS_CHANGED_TO_EA,
+            "LID" => $arSites,
+            "EMAIL_FROM" => "#SALE_EMAIL#",
+            "EMAIL_TO" => "#EMAIL#",
+            "BCC" => "#BCC#",
+            "SUBJECT" => GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_SUBJECT"),
+            "MESSAGE" => $template,
+            "BODY_TYPE" => "html",
+          ));
+        }
+      }
     }
 
-    public function DoUninstall()
-    {
-			//удаление статуса заказа [ЕРИП]Ожидание оплаты
-			$this->deleteOStatus();
+    Loc::loadMessages(__FILE__);
+    return $id;
+	}
 
-			// //удаление почтового шаблона
-			// $this->deleteMailTemplate();
-      //
-			// //удаление почтового события
-			// $this->deleteMailEvType();
-      //
-			// //удаляем обработчики пл. системы
-			// $this->deletePaysysHandler();
-      //
-			//удаления файлов обработчика пл. системы
-			$this->deleteHandlerFiles();
+  protected function deleteMailEvent()
+	{
+		CEventType::Delete(\BeGateway\Module\Erip\Events::ORDER_STATUS_CHANGED_TO_EA);
 
-			//удаление модуля из системы
-			//Bitrix\Main\ModuleManager::unRegisterModule($this->MODULE_ID);
-      UnRegisterModule($this->MODULE_ID);
-			return true;
-    }
+		$mail_template_id = (int)\Bitrix\Main\Config\Option::get($this->MODULE_ID, "mail_template_id");
+		CEventMessage::Delete($mail_template_id);
+		return true;
+	}
+
+  public function DoInstall() {
+
+		//Проверка зависимостей модуля
+		if( ! IsModuleInstalled("sale") )
+			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_SALE_MODULE_NOT_INSTALL_ERROR"));
+		if( ! function_exists("curl_init") )
+			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_CURL_NOT_INSTALL_ERROR"));
+		if( ! function_exists("json_decode") )
+			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_JSON_NOT_INSTALL_ERROR"));
+
+		//копируем файлы обработчика платежной системы
+		if(!$this->copyHandlerFiles())
+			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_COPY_ERROR_MESS"));
+
+		//создание статуса заказа [ЕРИП]Ожидание оплаты
+		if(!$this->addOStatus())
+			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"));
+
+		//регистраниция модуля
+    RegisterModule($this->MODULE_ID);
+
+		// Создание типа почтового события
+    $id = $this->addMailEvent();
+		if($id === false)
+			throw new Exception(Loc::getMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_ADD_ERROR"));
+
+		//сохранение ID почтового шаблона в настройках модуля
+		\Bitrix\Main\Config\Option::set($this->MODULE_ID, "mail_template_id",  $id);
+
+		//регистрация обработчика обновления заказа
+		if($this->addHandlers() === false)
+			throw new Exception(Loc::getMessage("SALE_HPS_BEGATEWAY_ERIP_HANDLERS_ADD_ERROR"));
+
+    return true;
+  }
+
+  public function DoUninstall()
+  {
+		//удаление статуса заказа [ЕРИП]Ожидание оплаты
+		$this->deleteOStatus();
+
+		//удаление почтового события
+		$this->deleteMailEvent();
+
+		// удаление обработчика обновления заказа
+		if($this->deleteHandlers() === false)
+			throw new Exception(Loc::getMessage("SALE_HPS_BEGATEWAY_ERIP_HANDLERS_DELETE_ERROR"));
+
+		//удаления файлов обработчика пл. системы
+		$this->deleteHandlerFiles();
+
+		//удаление модуля из системы
+    UnRegisterModule($this->MODULE_ID);
+		return true;
+  }
 }
