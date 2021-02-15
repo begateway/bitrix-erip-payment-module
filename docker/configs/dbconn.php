@@ -29,5 +29,3 @@ define("CACHED_b_lang_domain", 120);
 define("CACHED_b_site_template", 120);
 define("CACHED_b_event", 120);
 define("CACHED_b_agent", 120);
-
-?>

@@ -13,11 +13,7 @@ services:
     volumes:
       - ./docker/configs/.settings.php:/var/www/html/bitrix/.settings.php
       - ./docker/configs/dbconn.php:/var/www/html/bitrix/php_interface/dbconn.php
-      #- ./.last_version/begateway.payment:/var/www/html/bitrix/modules/begateway.payment
-      #- ./.last_version/begateway.payment/install/php_interface/include/sale_payment/begateway:/var/www/html/bitrix/php_interface/include/sale_payment/begateway
-      #- ./.last_version/begateway.payment/install/admin/begateway_adminbutton.php:/var/www/html/bitrix/admin/begateway_adminbutton.php
-      #- ./.last_version/begateway.payment/install/front/lang:/var/www/html/begateway/lang
-      #- ./.last_version/begateway.payment/install/front/pay.php:/var/www/html/begateway/pay.php
+      - ./begateway.erip:/var/www/html/bitrix/modules/begateway.erip
 
   mysql:
     image: mysql:8.0
