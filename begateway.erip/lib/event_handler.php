@@ -29,23 +29,6 @@ class EventHandler {
     $order = $event->getParameter("ENTITY");
     $value = $event->getParameter("VALUE");
 
-    $result = self::initiatePay($order);
-
-    if ($result->isSuccess()) {
-      // отсылаем письмо с инструкцией
-      $data = $result->getData();
-      for ($i = 0;$i < $data['counter']; $i++) {
-        $collection = $order->getPaymentCollection();
-        $payment = $collection->getItemById($data['ids'][$i]);
-
-        self::sendMail($order, $payment, $data['params'][$i]);
-      }
-    }
-        return new \Bitrix\Main\EventResult(
-          \Bitrix\Main\EventResult::ERROR,
-          new \Bitrix\Sale\ResultError(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_CHANGE_ERROR'), 'BEGATEWAY_ERIP_CREATE_ERROR'),
-          'sale'
-        );
     # проверяем не находился ли заказ уже в статусе ORDER_AWAITING_STATUS
     # и не был ли создан заказ хэндлеров в автоматическом режиме
     if ($value == \BeGateway\Module\Erip\OrderStatuses::ORDER_AWAITING_STATUS &&
@@ -53,7 +36,16 @@ class EventHandler {
 
       $result = self::initiatePay($order);
 
-      if (!$result->isSuccess()) {
+      if ($result->isSuccess()) {
+        // отсылаем письмо с инструкцией
+        $data = $result->getData();
+        for ($i = 0;$i < $data['counter']; $i++) {
+          $collection = $order->getPaymentCollection();
+          $payment = $collection->getItemById($data['ids'][$i]);
+
+          self::sendMail($order, $payment, $data['params'][$i]);
+        }
+      } else {
         return new \Bitrix\Main\EventResult(
           \Bitrix\Main\EventResult::ERROR,
           new \Bitrix\Sale\ResultError(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_CHANGE_ERROR'), 'BEGATEWAY_ERIP_CREATE_ERROR'),
@@ -62,21 +54,26 @@ class EventHandler {
       }
     }
 
+
     # проверяем не находился ли заказ уже в статусе ORDER_CANCELED_STATUS
     # и был ли создан счет в ЕРИП для заказа ранее
     if ($value == \BeGateway\Module\Erip\OrderStatuses::ORDER_CANCELED_STATUS &&
         $order->getField('STATUS_ID') != \BeGateway\Module\Erip\OrderStatuses::ORDER_CANCELED_STATUS) {
 
-      $result = self::cancelPay($event);
+      $result = self::cancelPay($order);
 
       if (!$result->isSuccess()) {
         return new \Bitrix\Main\EventResult(
           \Bitrix\Main\EventResult::ERROR,
-          new \Bitrix\Sale\ResultError(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EС_STATUS_CHANGE_ERROR'), 'BEGATEWAY_ERIP_CANCEL_ERROR'),
+          new \Bitrix\Sale\ResultError(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_CHANGE_ERROR'), 'BEGATEWAY_ERIP_CANCEL_ERROR'),
           'sale'
         );
       }
     }
+
+    return new \Bitrix\Main\EventResult(
+      \Bitrix\Main\EventResult::SUCCESS
+    );
   }
 
   /**
@@ -119,7 +116,7 @@ class EventHandler {
 
       // пропускаем счета уже выставленные в ЕРИП
       if (!empty($payment->getField('PS_INVOICE_ID'))) {
-       //continue;
+       continue;
       }
 
       // вызываем обработчик платежной системы, чтобы создать счет
@@ -148,6 +145,62 @@ class EventHandler {
     return $result;
   }
 
+  public static function cancelPay(Order $order) {
+    $result = new ServiceResult();
+
+    $resultStorage = [
+      'counter' => 0,
+      'ids' => [],
+      'params' => []
+    ];
+
+    $result->setData($resultStorage);
+
+    $paymentCollection = $order->getPaymentCollection();
+
+    foreach ($paymentCollection as $payment) {
+
+      $ps = $payment->getPaySystem();
+      $description = $ps->getHandlerDescription();
+
+      if (!isset($description['CODES']['BEGATEWAY_ERIP_ID'])) { // не обработчик ЕРИП
+        continue;
+      }
+
+      if ($payment->isPaid()) {// пропускаем уже оплаченные ЕРИП платежи
+        continue;
+      }
+
+      // пропускаем счета не выставленные в ЕРИП
+      if (empty($payment->getField('PS_INVOICE_ID'))) {
+       continue;
+      }
+
+      // вызываем обработчик платежной системы, чтобы отменить счет
+      $result = $ps->cancel($payment);
+
+      if ($result->isSuccess()) {
+
+        // удаляем номер операции ЕРИП в данном способе оплаты
+        $payment->setField('PS_INVOICE_ID', null);
+        $order->save();
+        $resultStorage['ids'] []= $payment->getId();
+        // сохраняем данные ЕРИП счета для шаблона письма
+        $resultStorage['params'] []= $result->getData();
+      }
+
+      $resultStorage['counter'] += 1;
+    }
+
+    # проверяем, что все обработчики завершились успешно
+    if ($resultStorage['counter'] == count($resultStorage['ids'])) {
+      $result->setData($resultStorage);
+    } else {
+      $result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EC_STATUS_CHANGE_ERROR')));
+    }
+
+    return $result;
+  }
 
   static public function sendMail(Order $order, Payment $payment, $params)
 	{
@@ -165,16 +218,23 @@ class EventHandler {
         'PAYMENT_ID' => $payment->getId(),
 				'SALE_EMAIL' => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER["SERVER_NAME"]),
         'BCC' => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER['SERVER_NAME']),
-        'ORDER_PUBLIC_URL' => self::getPublicLink($order),
+        'ORDER_PUBLIC_URL' => '',
         'INSTRUCTION' => $params['instruction'],
         'ACCOUNT_NUMBER' => $params['account_number'],
         'ERIP_SERVICE_CODE' => $params['service_no_erip'],
 				'QR_CODE' => $params['qr_code'],
 	  );
 
-    if ($info) {
-      $fields["SITE_NAME"] = $info['TITLE'];
-      $fields["SERVER_NAME"] = $info['PUBLIC_URL'];
+    if (!empty($info)) {
+      $fields["SITE_NAME"] = $info['SITE_NAME'];
+      $fields["SERVER_NAME"] = $info['SERVER_NAME'];
+      $fields["ORDER_PUBLIC_URL"] = 'http://' . $info['SERVER_NAME'];
+    }
+
+    $public_link = self::getPublicLink($order);
+
+    if (!empty($public_link)) {
+      $fields["ORDER_PUBLIC_URL"] = $public_link;
     }
 
     \Bitrix\Main\Mail\Event::send(array(
@@ -187,25 +247,17 @@ class EventHandler {
   static protected function getPublicLink(Order $order) {
     $link = '';
     if (method_exists('Bitrix\Sale\Helpers\Order', 'isAllowGuestView')) {
-      $link = Sale\Helpers\Order::isAllowGuestView($order) ? Sale\Helpers\Order::getPublicLink($entity) : "";
+      $link = Sale\Helpers\Order::isAllowGuestView($order) ? Sale\Helpers\Order::getPublicLink($order) : "";
     }
 
     return $link;
   }
 
   static protected function getSiteInfo(Order $order) {
-    $collection = $order->getTradeBindingCollection();
-    /** @var TradeBindingEntity $tradeBinding */
-    foreach ($collection as $tradeBinding)
-    {
-      $platform = $tradeBinding->getTradePlatform();
-      if ($platform !== null)
-      {
-        return $platform->getInfo();
-      }
-    }
+    $dbSite = \CSite::GetByID($order->getSiteId());
+    $arFields =  $dbSite->Fetch();
 
-    return [];
+    return ($arFields) ?: [];
   }
 
       // Debug::payment/roboxchange/result_rec.php($order->getField('STATUS_ID'));
