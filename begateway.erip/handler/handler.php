@@ -24,7 +24,7 @@ Loc::loadMessages(__FILE__);
  */
 class begateway_eripHandler
   extends PaySystem\ServiceHandler
-  implements PaySystem\IHold, PaySystem\ICheckable
+  implements PaySystem\IHold
 {
 	private const API_URL                 = 'https://api.bepaid.by';
 
@@ -118,27 +118,6 @@ class begateway_eripHandler
   {
     $result = new ServiceResult();
 		$result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_CONFIRM_ERROR')));
-    return $result;
-  }
-
-  /**
-   * @param Payment $payment
-   * @return PaySystem\ServiceResult
-   */
-  public function check(Payment $payment): ServiceResult
-  {
-    $result = new ServiceResult();
-
-    $processPaymentResult = $this->processPayment($payment);
-    
-    if ($processPaymentResult->isSuccess()) {
-      $result->setPsData($processPaymentResult->getPsData());
-      $result->setOperationType($processPaymentResult->getOperationType());
-      $result->addErrors($processPaymentResult->getErrors());
-    } else {
-  		$result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_CONFIRM_ERROR')));
-    }
-
     return $result;
   }
 
@@ -468,10 +447,7 @@ class begateway_eripHandler
 				)
 			);
     } else {
-      $processPaymentResult = $this->processPayment($payment);
-      $result->setPsData($processPaymentResult->getPsData());
-      $result->setOperationType($processPaymentResult->getOperationType());
-      $result->addErrors($processPaymentResult->getErrors());
+      return $this->processPayment($payment);
     }
 
     return $result;
@@ -495,6 +471,7 @@ class begateway_eripHandler
 			$beGatewayEripPaymentData = $beGatewayEripPaymentResult->getData();
 			if ($beGatewayEripPaymentData['transaction']['status'] === self::STATUS_SUCCESSFUL_CODE)
 			{
+        $transaction = $beGatewayEripPaymentData['transaction'];
 				$description = Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_TRANSACTION', [
 					'#ID#' => $transaction['uid'],
 				]);
@@ -556,11 +533,13 @@ class begateway_eripHandler
 	 * @return bool
   */
   private function isSignatureCorrect(Payment $payment, $inputStream) {
-    if (!is_set($_SERVER['CONTENT_SIGNATURE'])) {
-      return false;
-    }
+    $signature = $_SERVER['HTTP_CONTENT_SIGNATURE'];
 
-    $signature  = base64_decode($_SERVER['CONTENT_SIGNATURE']);
+		PaySystem\Logger::addDebugInfo(
+			__CLASS__.': Signature: '.$signature."; Webhook: ".$inputStream
+		);
+
+    $signature  = base64_decode($_SERVER['HTTP_CONTENT_SIGNATURE']);
 
     if (!$signature) {
       return false;
