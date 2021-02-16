@@ -152,7 +152,14 @@ class begateway_erip extends CModule
           $arSites[] = $site["LID"];
 
         if(count($arSites) > 0) {
-          $template = str_replace("#SITE_CHARSET#", $lang["CHARSET"], GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_HTML"));
+          $template = str_replace([
+            "#SITE_CHARSET#",
+            '#ABOUT_SERVICE#'
+          ],
+          [
+            $lang["CHARSET"],
+            GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_CHECKOUT_DESCRIPTION")
+          ], GetMessage("SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_HTML"));
 
           $emess = new CEventMessage;
           $id = $emess->Add(array(

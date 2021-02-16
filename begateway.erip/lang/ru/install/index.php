@@ -24,6 +24,7 @@ $MESS["SALE_HPS_BEGATEWAY_ERIP_HANDLERS_DELETE_ERROR"] = "Ошибка удал�
 
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_ADD_ERROR"] = "Не удалось добавить почтовое событие";
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_ADD_ERROR"] = "Не удалось добавить почтовый шаблон";
+$MESS['SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_CHECKOUT_DESCRIPTION'] = 'Услугу предоставляет сервис <b>&laquo;bePaid&raquo;</b>.';
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_SUBJECT"] = "#SITE_NAME#: инструкция по оплате заказа N#ORDER_ID# через ЕРИП";
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_NAME"] = "Изменение статуса заказа на \"".$MESS["SALE_HPS_BEGATEWAY_ERIP_EA_STATUS"]."\"";
 $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_EVENT_DESC"] = "
@@ -53,11 +54,11 @@ $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_TEXT"] = '
 
 1. Выбрать пункт ЕРИП
 2. Выбрать последовательно пункты: #INSTRUCTION#
-3. Ввести номер заказа <strong>#ACCOUNT_NUMBER#
+3. Ввести номер <strong>#ACCOUNT_NUMBER#
 4. Проверить корректность информации
 5. Совершить платеж
 
-Для получения подробной информации по заказу пройдите на сайт http://#SERVER_NAME#/personal/order/#ORDER_ACCOUNT_NUMBER_ENCODE#/
+Для получения подробной информации по заказу пройдите на сайт #ORDER_PUBLIC_URL#
 
 С уважением,
 администрация Интернет-магазина
@@ -87,7 +88,7 @@ $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_HTML"] = '
 					<td bgcolor="#ffffff" height="75" style="font-weight: bold; text-align: center; font-size: 26px; color: #0b3961;">Инструкция по оплате заказа через ЕРИП</td>
 				</tr>
 				<tr>
-					<td bgcolor="#bad3df" height="11"></td>
+					<td bgcolor="#bad3df" height="11" style="font-weight: bold; text-align: center;">#ABOUT_SERVICE#</td>
 				</tr>
 			</table>
 		</td>
@@ -100,14 +101,14 @@ $MESS["SALE_HPS_BEGATEWAY_ERIP_MAIL_TEMPLATE_HTML"] = '
         <ol>
           <li>Выбрать пункт ЕРИП</li>
           <li>Выбрать последовательно пункты: <i>#INSTRUCTION#</i></li>
-          <li>Ввести номер заказа <strong>#ACCOUNT_NUMBER#</strong></li>
+          <li>Ввести номер <strong>#ACCOUNT_NUMBER#</strong></li>
           <li>Проверить корректность информации</li>
           <li>Совершить платеж</li>
         </ol>
       </p>
 			<p style="margin-top: 30px; margin-bottom: 20px;">Если вы пользуйтесь мобильными приложением банка, то используйте его, чтобы отсканировать QR-код и осуществить платеж.</p>
       <p><img src="#QR_CODE#"></p>
-			<p style="margin-top: 30px; margin-bottom: 20px; line-height: 20px;">Для получения подробной информации по заказу пройдите на сайт http://#SERVER_NAME#/personal/order/#ORDER_ACCOUNT_NUMBER_ENCODE#/</p>
+			<p style="margin-top: 30px; margin-bottom: 20px; line-height: 20px;">Для получения подробной информации по заказу пройдите на сайт <a href="#ORDER_PUBLIC_URL#">#ORDER_PUBLIC_URL#</a></p>
 		</td>
 	</tr>
 	<tr>

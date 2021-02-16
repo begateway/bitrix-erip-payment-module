@@ -9,7 +9,7 @@ $MESS['SALE_HANDLERS_PAY_SYSTEM_TEMPLATE_BEGATEWAY_ERIP_INSTRUCTION'] = '
 <ol>
   <li>Выбрать пункт ЕРИП</li>
   <li>Выбрать последовательно пункты: <i>#INSTRUCTION#</i></li>
-  <li>Ввести номер заказа <strong>#ACCOUNT_NUMBER#</strong></li>
+  <li>Ввести номер <strong>#ACCOUNT_NUMBER#</strong></li>
   <li>Проверить корректность информации</li>
   <li>Совершить платеж</li>
 </ol>';

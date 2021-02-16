@@ -4,3 +4,4 @@ $MESS['SALE_HPS_BEGATEWAY_ERIP_ERROR_STATUS'] = 'Некорректный ста
 $MESS['SALE_HPS_BEGATEWAY_ERIP_ERROR_SIGNATURE'] = 'Некорректная подпись вебхука';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_TRANSACTION'] = 'Транзакция #ID#';
 $MESS['SALE_HPS_BEGATEWAY_ERIP_ERROR_SUM'] = 'Сумма платежа не совпадает с суммой оплаты';
+$MESS['SALE_HPS_BEGATEWAY_ERIP_CONFIRM_ERROR'] = 'Оплата может быть только отменена';
