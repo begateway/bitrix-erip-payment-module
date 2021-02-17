@@ -24,7 +24,7 @@ Loc::loadMessages(__FILE__);
  */
 class begateway_eripHandler
   extends PaySystem\ServiceHandler
-  implements PaySystem\IHold
+  implements PaySystem\IHold, PaySystem\ICheckable
 {
 	private const API_URL                 = 'https://api.bepaid.by';
 
@@ -118,6 +118,19 @@ class begateway_eripHandler
   {
     $result = new ServiceResult();
 		$result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_CONFIRM_ERROR')));
+    return $result;
+  }
+
+  /**
+   * @param Payment $payment
+   * @return PaySystem\ServiceResult
+   */
+  public function check(Payment $payment): ServiceResult
+  {
+    $result = $this->processPayment($payment);
+    Debug::dumpToFile($result);
+    Debug::dumpToFile($payment);
+
     return $result;
   }
 
