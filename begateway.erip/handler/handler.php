@@ -256,8 +256,8 @@ class begateway_eripHandler
 			]
 		];
 
-    $service_code = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SERVICE_CODE');
-    if (isset($service_code) && !empty(trim($service_code))) {
+    $service_code = trim($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SERVICE_CODE'));
+    if (isset($service_code) && !empty($service_code)) {
       $params['request']['payment_method']['service_no'] = $service_code;
     }
 
