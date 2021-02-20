@@ -48,12 +48,21 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	public function initiatePay(Payment $payment, Request $request = null, $onEvent = false): ServiceResult
+	public function initiatePay(Payment $payment, Request $request = null): ServiceResult
 	{
 		$result = new ServiceResult();
 
-    if ($this->isAutoMode($payment) || $onEvent) {
-  		$createEripBillResult = $this->createEripBill($payment);
+    # смена статуса заказа по событию из админки
+    $ajaxMode = ($request) ? $this->isAdminChangeStatus($request) : false;
+
+    if ($this->isAutoMode($payment) || $ajaxMode) {
+      if (empty($payment->getField('PS_INVOICE_ID'))) {
+    		$createEripBillResult = $this->createEripBill($payment);
+      } else {
+        # счет был уже создан и нужно получить данные для шаблона
+    		$createEripBillResult = $this->getBeGatewayEripPayment($payment);
+      }
+
   		if (!$createEripBillResult->isSuccess())
   		{
   			$result->addErrors($createEripBillResult->getErrors());
@@ -70,7 +79,7 @@ class begateway_eripHandler
   		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
     }
 
-		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
+    $showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
 		if ($showTemplateResult->isSuccess())
 		{
 			$result->setTemplate($showTemplateResult->getTemplate());
@@ -128,8 +137,6 @@ class begateway_eripHandler
   public function check(Payment $payment): ServiceResult
   {
     $result = $this->processPayment($payment);
-    Debug::dumpToFile($result);
-    Debug::dumpToFile($payment);
 
     return $result;
   }
@@ -149,7 +156,19 @@ class begateway_eripHandler
 	 */
   private function isAutoMode(Payment $payment)
   {
-    return $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL') == 'Y';
+    $autoModeSetting = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL');
+    $createdEripBill = !empty($payment->getField('PS_INVOICE_ID'));
+
+    return $autoModeSetting == 'Y' || $createdEripBill;
+  }
+
+	/**
+	 * @param Request $request
+	 * @return boolean
+	 */
+  private function isAdminChangeStatus(Request $request)
+  {
+    return $request->isAdminSection() && $request->isAjaxRequest();
   }
 
 	/**

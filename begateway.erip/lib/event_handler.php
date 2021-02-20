@@ -54,7 +54,6 @@ class EventHandler {
       }
     }
 
-
     # проверяем не находился ли заказ уже в статусе ORDER_CANCELED_STATUS
     # и был ли создан счет в ЕРИП для заказа ранее
     if ($value == \BeGateway\Module\Erip\OrderStatuses::ORDER_CANCELED_STATUS &&
@@ -119,18 +118,21 @@ class EventHandler {
        continue;
       }
 
+      $request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
       // вызываем обработчик платежной системы, чтобы создать счет
-      $result = $ps->initiatePay($payment, null, true);
+      $result = $ps->initiatePay($payment, $request);
 
       if ($result->isSuccess()) {
 
         // сохраняем номер операции ЕРИП в данных способа оплаты
         $psData = $result->getPsData();
-        $payment->setField('PS_INVOICE_ID', $psData['PS_INVOICE_ID']);
-        $order->save();
-        $resultStorage['ids'] []= $payment->getId();
-        // сохраняем данные ЕРИП счета для шаблона письма
-        $resultStorage['params'] []= $result->getData();
+        if ($psData['PS_INVOICE_ID']) {
+          $payment->setField('PS_INVOICE_ID', $psData['PS_INVOICE_ID']);
+          $order->save();
+          $resultStorage['ids'] []= $payment->getId();
+          // сохраняем данные ЕРИП счета для шаблона письма
+          $resultStorage['params'] []= $result->getData();
+        }
       }
 
       $resultStorage['counter'] += 1;
@@ -142,6 +144,7 @@ class EventHandler {
     } else {
       $result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_CHANGE_ERROR')));
     }
+
     return $result;
   }
 
@@ -259,19 +262,4 @@ class EventHandler {
 
     return ($arFields) ?: [];
   }
-
-      // Debug::payment/roboxchange/result_rec.php($order->getField('STATUS_ID'));
-      // Debug::dumpToFile($event->getParameter("VALUE"));
-
-    // return new \Bitrix\Main\EventResult(
-    //   \Bitrix\Main\EventResult::SUCCESS
-    //   // new \Bitrix\Sale\ResultNotice(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_CHANGE_SUCCESS'), 'BEGATEWAY_ERIP_CREATE_SUCCESS'),
-    //   // 'sale'
-    // );
-    //
-    // return new \Bitrix\Main\EventResult(
-    //   \Bitrix\Main\EventResult::ERROR,
-    //   new \Bitrix\Sale\ResultError(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_EA_STATUS_CHANGE_ERROR'), 'BEGATEWAY_ERIP_CREATE_ERROR'),
-    //   'sale'
-    // );
 }
