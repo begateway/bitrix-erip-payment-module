@@ -49,7 +49,7 @@ class Encoder {
       $content = file_get_contents($path);
 
       if( is_dir($path) ) {
-        $this->reEncode( $path, $enc );
+        self::reEncode( $path, $enc );
       }
       else {
 

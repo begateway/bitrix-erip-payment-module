@@ -19,30 +19,29 @@ class begateway_erip extends CModule
 	{
 		$arModuleVersion = array();
 
-		$path = str_replace("\\", "/", __FILE__);
-		$path = substr($path, 0, strlen($path) - strlen("/index.php"));
-		include($path."/version.php");
+		$this->MODULE_NAME = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_MODULE');
+		$this->MODULE_DESCRIPTION = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_MODULE_DESC');
+    $this->PARTNER_NAME = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_NAME');
+    $this->PARTNER_URI = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_URI');
+    $this->PAYMENT_HANDLER_PATH = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/php_interface/include/sale_payment/" . str_replace(".", "_", $this->MODULE_ID) . "/";
+    $this->MODULE_PATH = $_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$this->MODULE_ID;
+
+		include($this->MODULE_PATH . '/install/version.php');
 
 		if (is_array($arModuleVersion) && array_key_exists("VERSION", $arModuleVersion))
 		{
 			$this->MODULE_VERSION = $arModuleVersion["VERSION"];
 			$this->MODULE_VERSION_DATE = $arModuleVersion["VERSION_DATE"];
 		}
-
-		$this->MODULE_NAME = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_MODULE');
-		$this->MODULE_DESCRIPTION = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_MODULE_DESC');
-    $this->PARTNER_NAME = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_NAME');
-    $this->PARTNER_URI = \BeGateway\Module\Erip\Encoder::GetEncodeMessage('SALE_HPS_BEGATEWAY_ERIP_PARTNER_URI');
-    $this->PAYMENT_HANDLER_PATH = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/php_interface/include/sale_payment/" . str_replace(".", "_", $this->MODULE_ID) . "/";
 	}
 
 
 	protected function copyHandlerFiles()
 	{
+    \BeGateway\Module\Erip\Encoder::reEncode($this->MODULE_PATH . "/lang/", SITE_CHARSET);
 		return CopyDirFiles(
-					$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$this->MODULE_ID."/install/sale_payment/".$this->MODULE_ID,
+					$this->MODULE_PATH ."/install/sale_payment/".$this->MODULE_ID,
           $this->PAYMENT_HANDLER_PATH,
-					#$_SERVER["DOCUMENT_ROOT"]."/bitrix/php_interface/include/sale_payment",
 					true, true
 				);
 	}
@@ -64,7 +63,7 @@ class begateway_erip extends CModule
 
     while ($row = $result->Fetch()) {
       $languageId = $row['LID'];
-      \Bitrix\Main\Localization\Loc::loadLanguageFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/'.$this->MODULE_ID.'/install/install.php', $languageId);
+      \Bitrix\Main\Localization\Loc::loadLanguageFile($this->MODULE_PATH.'/install/install.php', $languageId);
       foreach (array(\BeGateway\Module\Erip\OrderStatuses::ORDER_AWAITING_STATUS, \BeGateway\Module\Erip\OrderStatuses::ORDER_CANCELED_STATUS) as $statusId) {
         if ($statusName = \BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_{$statusId}_STATUS")) {
           $statusLanguages[$statusId] []= array(
@@ -208,9 +207,6 @@ class begateway_erip extends CModule
 		if(!$this->addOStatus())
 			throw new Exception(\BeGateway\Module\Erip\Encoder::GetEncodeMessage("SALE_HPS_BEGATEWAY_ERIP_ADD_ORDER_STATUS_ERROR"));
 
-		//регистраниция модуля
-    RegisterModule($this->MODULE_ID);
-
 		// Создание типа почтового события
     $id = $this->addMailEvent();
 		if($id === false)
@@ -223,6 +219,8 @@ class begateway_erip extends CModule
 		if($this->addHandlers() === false)
 			throw new Exception(Loc::getMessage("SALE_HPS_BEGATEWAY_ERIP_HANDLERS_ADD_ERROR"));
 
+		//регистраниция модуля
+    RegisterModule($this->MODULE_ID);
     return true;
   }
 
