@@ -4,6 +4,7 @@
 
 Подробная инструкция по настройке модуля находится по ссылке:
 
+https://github.com/begateway/bitrix-erip-payment-module/raw/master/manual.pdf
 
 ## Журнал ошибок
 
