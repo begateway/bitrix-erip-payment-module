@@ -12,6 +12,6 @@ https://github.com/begateway/bitrix-erip-payment-module/raw/master/manual.pdf
 
 ## Ссылки для разработчика
 
-https://doc.budagov.ru/index.html
-https://bxapi.ru/
-https://mrcappuccino.ru/blog/post/work-with-order-bitrix-d7
+  * https://doc.budagov.ru/index.html
+  * https://bxapi.ru/
+  * https://mrcappuccino.ru/blog/post/work-with-order-bitrix-d7
