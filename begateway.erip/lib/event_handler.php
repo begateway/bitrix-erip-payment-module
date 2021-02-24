@@ -120,7 +120,14 @@ class EventHandler {
 
       $request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
       // вызываем обработчик платежной системы, чтобы создать счет
+      $ps_status_message = $payment->getField('PS_STATUS_MESSAGE');
+      $payment->setField('PS_STATUS_MESSAGE', 'manual');
+
       $result = $ps->initiatePay($payment, $request);
+
+      if ($payment->getField('PS_STATUS_MESSAGE') == 'manual') {
+        $payment->setField('PS_STATUS_MESSAGE', $ps_status_message);
+      }
 
       if ($result->isSuccess()) {
 
@@ -243,6 +250,7 @@ class EventHandler {
     \Bitrix\Main\Mail\Event::send(array(
       "EVENT_NAME" => \BeGateway\Module\Erip\Events::ORDER_STATUS_CHANGED_TO_EA,
       "LID" => $order->getField('LID'),
+      "LANGUAGE_ID" => $info["LANGUAGE_ID"],
       "C_FIELDS" => $fields
     ));
 	}

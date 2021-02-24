@@ -137,11 +137,6 @@ $data = [
       'SORT' => 1500,
       'GROUP' => 'BUYER_PERSON'
     ],
-    'BUYER_PERSON_COUNTRY' => [
-      'NAME' => Loc::getMessage('SALE_HPS_BEGATEWAY_COUNTRY'),
-      'SORT' => 1600,
-      'GROUP' => 'BUYER_PERSON'
-    ],
     'BUYER_PERSON_CITY' => [
       'NAME' => Loc::getMessage('SALE_HPS_BEGATEWAY_CITY'),
       'SORT' => 1700,
