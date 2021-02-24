@@ -53,7 +53,7 @@ class begateway_eripHandler
 		$result = new ServiceResult();
 
     # смена статуса заказа по событию из админки
-    $ajaxMode = ($request) ? $this->isAdminChangeStatus($request) : false;
+    $ajaxMode = ($request) ? $this->isAdminChangeStatus($payment) : false;
 
     if ($this->isAutoMode($payment) || $ajaxMode) {
       if (empty($payment->getField('PS_INVOICE_ID'))) {
@@ -166,9 +166,9 @@ class begateway_eripHandler
 	 * @param Request $request
 	 * @return boolean
 	 */
-  private function isAdminChangeStatus(Request $request)
+  private function isAdminChangeStatus(Payment $payment)
   {
-    return $request->isAdminSection() && $request->isAjaxRequest();
+    return $payment->getField('PS_STATUS_MESSAGE') == 'manual';
   }
 
 	/**
@@ -226,7 +226,6 @@ class begateway_eripHandler
           'first_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST')),
           'middle_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')),
           'last_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_LAST')),
-          'country' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_COUNTRY')),
           'city' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_CITY')),
           'zip' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ZIP')),
           'address' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ADDRESS')),
