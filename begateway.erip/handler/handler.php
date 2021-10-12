@@ -211,10 +211,15 @@ class begateway_eripHandler
 		$result = new ServiceResult();
 
 		$url = $this->getUrl($payment, 'sendEripBill');
+
+    $money = new \BeGateway\Module\Erip\Money;
+    $money->setCurrency($payment->getField('CURRENCY'));
+    $money->setAmount($payment->getSum());
+
 		$params = [
 			'request' => [
 				'test' => $this->isTestMode($payment),
-				'amount' => $payment->getSum() * 100,
+				'amount' => $money->getCents(),
 				'currency' => $payment->getField('CURRENCY'),
 				'description' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getPaymentDescription($payment), 255),
 				'tracking_id' => $payment->getId().self::TRACKING_ID_DELIMITER.$this->service->getField('ID'),
@@ -244,13 +249,8 @@ class begateway_eripHandler
           )
         ],
         'additional_data' => [
-          'meta' => [
-            'cms' => [
-              'name' => '1C-Bitrix',
-              'version' => ModuleManager::getVersion('main'),
-              'module_id' =>  ModuleManager::getVersion('begateway.erip')
-            ]
-          ]
+          'platform_data' => '1C-Bitrix' . ' v' . ModuleManager::getVersion('main'),
+          'integration_data' => 'BeGateway ERIP payment module ' . ' v' . ModuleManager::getVersion('begateway.erip')
         ]
 			]
 		];
@@ -506,16 +506,21 @@ class begateway_eripHandler
 				$description = Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_TRANSACTION', [
 					'#ID#' => $transaction['uid'],
 				]);
+
+        $money = new \BeGateway\Module\Erip\Money;
+        $money->setCurrency($transaction['currency']);
+        $money->setCents($transaction['amount']);
+
 				$fields = [
 					'PS_STATUS_CODE' => $transaction['status'],
 					'PS_STATUS_DESCRIPTION' => $description,
-					'PS_SUM' => $transaction['amount'] / 100,
+					'PS_SUM' => $money->getAmount(),
 					'PS_STATUS' => 'N',
 					'PS_CURRENCY' => $transaction['currency'],
 					'PS_RESPONSE_DATE' => new Main\Type\DateTime()
 				];
 
-				if ($this->isSumCorrect($payment, $transaction['amount'] / 100))
+				if ($this->isSumCorrect($payment, $money->getAmount()))
 				{
 					$fields['PS_STATUS'] = 'Y';
 
