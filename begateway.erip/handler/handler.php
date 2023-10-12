@@ -249,6 +249,7 @@ class begateway_eripHandler
           )
         ],
         'additional_data' => [
+		  'notifications' => $this->getNotificationOptions($payment),
           'platform_data' => '1C-Bitrix' . ' v' . ModuleManager::getVersion('main'),
           'integration_data' => 'BeGateway ERIP payment module ' . ' v' . ModuleManager::getVersion('begateway.erip')
         ]
@@ -802,6 +803,18 @@ class begateway_eripHandler
 	 */
 	protected function isTestMode(Payment $payment = null): bool {
 		return ($this->getBusinessValue($payment, 'PS_IS_TEST') === 'Y');
+	}
+
+	/**
+	 * @param Payment $payment
+	 * @return array
+	 */
+	protected function getNotificationOptions(Payment $payment = null): array {
+		$options = [];
+		if ($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SMS_NOTIFICATION') === 'Y') {
+			$options []= 'sms';
+		}
+		return $options;
 	}
 
 	/**

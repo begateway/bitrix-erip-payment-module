@@ -93,6 +93,19 @@ $data = [
 				'PROVIDER_VALUE' => $protocol.$request->getHttpHost().'/bitrix/tools/sale_ps_result.php',
 			],
 		],
+		'BEGATEWAY_ERIP_SMS_NOTIFICATION' => [
+			'NAME' => Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_SMS_NOTIFICATION'),
+			'DESCRIPTION' => Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_SMS_NOTIFICATION_DESC'),
+			'SORT' => 900,
+			'GROUP' => 'GENERAL_SETTINGS',
+			'INPUT' => [
+				'TYPE' => 'Y/N',
+			],
+			'DEFAULT' => [
+				'PROVIDER_KEY' => 'INPUT',
+				'PROVIDER_VALUE' => 'N',
+			],
+		],
 		'BEGATEWAY_ERIP_AUTO_BILL' => [
 			'NAME' => Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_AUTO_BILL'),
 			'DESCRIPTION' => Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_AUTO_BILL_DESC'),
