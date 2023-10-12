@@ -1,2 +1,8 @@
 .DS_Store
 .tags*
+docker/busines_encode_15_0.tar.gz
+docker/business_encode_16.tar.gz
+docker/business_encode_20.tar.gz
+docker/business_small_encode_15.tar.gz
+docker/business_encode.tar.gz
+docker/business_encode_23.tar.gz
