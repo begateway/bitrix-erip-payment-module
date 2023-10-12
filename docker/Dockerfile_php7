@@ -1,10 +1,17 @@
-FROM php:8.0-apache
+FROM php:7.2-apache
 
 RUN apt-get update && apt-get install -y \
     libzip-dev unzip vim less libgd-dev \
     libpng-dev libwebp-dev libjpeg62-turbo-dev sendmail \
     libxpm-dev libfreetype6-dev && \
-    docker-php-ext-configure gd --enable-gd --with-webp --with-jpeg --with-xpm --with-freetype && \
+    docker-php-ext-configure gd \
+    --with-gd \
+    --with-webp-dir \
+    --with-jpeg-dir \
+    --with-png-dir \
+    --with-zlib-dir \
+    --with-xpm-dir \
+    --with-freetype-dir && \
     docker-php-ext-install mysqli zip gd && \
     apt-get remove -y libzip-dev libgd-dev \
     libpng-dev libwebp-dev libjpeg62-turbo-dev \
@@ -14,9 +21,8 @@ RUN apt-get update && apt-get install -y \
 
 ADD ./configs/php*.ini /usr/local/etc/php/conf.d/
 
-#COPY business_encode_20.tar.gz /var/www/html/business_encode.tar.gz
-#COPY business_encode.tar.gz /var/www/html/business_encode.tar.gz
-ADD https://www.1c-bitrix.ru/download/business_encode.tar.gz /var/www/html/
+COPY business_encode.tar.gz /var/www/html/
+#ADD https://www.1c-bitrix.ru/download/business_encode.tar.gz /var/www/html/
 
 WORKDIR "/var/www/html/"
 
