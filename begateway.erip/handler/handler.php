@@ -2,17 +2,17 @@
 namespace Sale\Handlers\PaySystem;
 
 use Bitrix\Main,
-  Bitrix\Main\ModuleManager,
-	Bitrix\Main\Web\HttpClient,
-	Bitrix\Main\Localization\Loc,
-	Bitrix\Sale,
-	Bitrix\Sale\PaySystem,
-	Bitrix\Main\Request,
-	Bitrix\Sale\Payment,
-  Bitrix\Main\Diag\Debug,
-	Bitrix\Sale\PaySystem\ServiceResult,
-	Bitrix\Sale\PaymentCollection,
-	Bitrix\Sale\PriceMaths;
+Bitrix\Main\ModuleManager,
+Bitrix\Main\Web\HttpClient,
+Bitrix\Main\Localization\Loc,
+Bitrix\Sale,
+Bitrix\Sale\PaySystem,
+Bitrix\Main\Request,
+Bitrix\Sale\Payment,
+Bitrix\Main\Diag\Debug,
+Bitrix\Sale\PaySystem\ServiceResult,
+Bitrix\Sale\PaymentCollection,
+Bitrix\Sale\PriceMaths;
 
 Loc::loadMessages(__FILE__);
 
@@ -22,19 +22,17 @@ Loc::loadMessages(__FILE__);
  * Class BePaidHandler
  * @package Sale\Handlers\PaySystem
  */
-class begateway_eripHandler
-  extends PaySystem\ServiceHandler
-  implements PaySystem\IHold, PaySystem\ICheckable
+class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySystem\IHold, PaySystem\ICheckable
 {
-	private const API_URL                 = 'https://api.bepaid.by';
+	private const API_URL = 'https://api.bepaid.by';
 
-	private const TRACKING_ID_DELIMITER   = '#';
+	private const TRACKING_ID_DELIMITER = '#';
 
-	private const STATUS_SUCCESSFUL_CODE  = 'successful';
-	private const STATUS_ERROR_CODE       = 'error';
+	private const STATUS_SUCCESSFUL_CODE = 'successful';
+	private const STATUS_ERROR_CODE = 'error';
 
-	private const SEND_METHOD_HTTP_POST   = 'POST';
-	private const SEND_METHOD_HTTP_GET    = 'GET';
+	private const SEND_METHOD_HTTP_POST = 'POST';
+	private const SEND_METHOD_HTTP_GET = 'GET';
 	private const SEND_METHOD_HTTP_DELETE = 'DELETE';
 
 	/**
@@ -52,42 +50,46 @@ class begateway_eripHandler
 	{
 		$result = new ServiceResult();
 
-    # смена статуса заказа по событию из админки
-    $ajaxMode = ($request) ? $this->isAdminChangeStatus($payment) : false;
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ' intiatPay: ' . print_r($payment, true));
 
-    if ($this->isAutoMode($payment) || $ajaxMode) {
-      if (empty($payment->getField('PS_INVOICE_ID'))) {
-    		$createEripBillResult = $this->createEripBill($payment);
-      } else {
-        # счет был уже создан и нужно получить данные для шаблона
-    		$createEripBillResult = $this->getBeGatewayEripPayment($payment);
-      }
+		# смена статуса заказа по событию из админки
+		$ajaxMode = ($request) ? $this->isAdminChangeStatus($payment) : false;
 
-  		if (!$createEripBillResult->isSuccess())
-  		{
-  			$result->addErrors($createEripBillResult->getErrors());
-  			return $result;
-  		}
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': PS_INVOICE_ID: ' . $payment->getField('PS_INVOICE_ID') . '. ajaxMode: ' . $ajaxMode);
 
-  		$createEripBillData = $createEripBillResult->getData();
-  		if (!empty($createEripBillData['transaction']['uid']))
-  		{
-  			$result->setPsData(['PS_INVOICE_ID' => $createEripBillData['transaction']['uid']]);
-        $result->setData($this->getTemplateParams($payment, $createEripBillData));
-  		}
+		if ($this->isAutoMode($payment) || $ajaxMode) {
+			if (empty($payment->getField('PS_INVOICE_ID'))) {
+				PaySystem\Logger::addDebugInfo(__CLASS__ . ': createEripBill');
+				$createEripBillResult = $this->createEripBill($payment);
+			} else {
+				# счет был уже создан и нужно получить данные для шаблона
+				PaySystem\Logger::addDebugInfo(__CLASS__ . ': getBeGatewayEripPayment');
+				$createEripBillResult = $this->getBeGatewayEripPayment($payment);
+			}
 
-  		$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
-    }
+			PaySystem\Logger::addDebugInfo(__CLASS__ . ': createEripBillResult: ' . print_r($createEripBillResult, true));
+			if (!$createEripBillResult->isSuccess()) {
+				$result->addErrors($createEripBillResult->getErrors());
+				return $result;
+			}
 
-    $showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
-		if ($showTemplateResult->isSuccess())
-		{
-			$result->setTemplate($showTemplateResult->getTemplate());
+			$createEripBillData = $createEripBillResult->getData();
+			if (!empty($createEripBillData['transaction']['uid'])) {
+				$result->setPsData(['PS_INVOICE_ID' => $createEripBillData['transaction']['uid']]);
+				$result->setData($this->getTemplateParams($payment, $createEripBillData));
+			}
+
+			$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));
 		}
-		else
-		{
+
+		$showTemplateResult = $this->showTemplate($payment, $this->getTemplateName($payment));
+		if ($showTemplateResult->isSuccess()) {
+			$result->setTemplate($showTemplateResult->getTemplate());
+		} else {
 			$result->addErrors($showTemplateResult->getErrors());
 		}
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': initPay return: ' . print_r($result, true));
 
 		return $result;
 	}
@@ -107,39 +109,45 @@ class begateway_eripHandler
 	{
 		$result = new ServiceResult();
 		$deleteEripBillResult = $this->deleteEripBill($payment);
-    if (!$deleteEripBillResult->isSuccess())
-    {
-      $result->addErrors($deleteEripBillResult->getErrors());
-      return $result;
-    }
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': deleteEripBillResult: ' . print_r($deleteEripBillResult, true));
+
+		if (!$deleteEripBillResult->isSuccess()) {
+			$result->addErrors($deleteEripBillResult->getErrors());
+			return $result;
+		}
 		$deleteEripBillData = $deleteEripBillResult->getData();
 
-    $result->setData($deleteEripBillData);
+		$result->setData($deleteEripBillData);
 
-    return $result;
-  }
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': cancel return: ' . print_r($result, true));
 
-  /**
-   * @param Payment $payment
-   * @return PaySystem\ServiceResult
-   */
-  public function confirm(Payment $payment): ServiceResult
-  {
-    $result = new ServiceResult();
+		return $result;
+	}
+
+	/**
+	 * @param Payment $payment
+	 * @return PaySystem\ServiceResult
+	 */
+	public function confirm(Payment $payment): ServiceResult
+	{
+		$result = new ServiceResult();
 		$result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_CONFIRM_ERROR')));
-    return $result;
-  }
+		return $result;
+	}
 
-  /**
-   * @param Payment $payment
-   * @return PaySystem\ServiceResult
-   */
-  public function check(Payment $payment): ServiceResult
-  {
-    $result = $this->processPayment($payment);
+	/**
+	 * @param Payment $payment
+	 * @return PaySystem\ServiceResult
+	 */
+	public function check(Payment $payment): ServiceResult
+	{
+		$result = $this->processPayment($payment);
 
-    return $result;
-  }
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': check return: ' . print_r($result, true));
+
+		return $result;
+	}
 
 	/**
 	 * @param Payment $payment
@@ -147,29 +155,35 @@ class begateway_eripHandler
 	 */
 	private function getTemplateName(Payment $payment): string
 	{
-    return $this->isAutoMode($payment) ? 'auto' : 'manual';
+		return $this->isAutoMode($payment) ? 'auto' : 'manual';
 	}
 
 	/**
 	 * @param Payment $payment
 	 * @return boolean
 	 */
-  private function isAutoMode(Payment $payment)
-  {
-    $autoModeSetting = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL');
-    $createdEripBill = !empty($payment->getField('PS_INVOICE_ID'));
+	private function isAutoMode(Payment $payment)
+	{
+		$autoModeSetting = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_AUTO_BILL');
+		$createdEripBill = !empty($payment->getField('PS_INVOICE_ID'));
 
-    return $autoModeSetting == 'Y' || $createdEripBill;
-  }
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': isAutoMode: ' . $autoModeSetting . ' ' . $createdEripBill);
+
+		return $autoModeSetting == 'Y' || $createdEripBill;
+	}
 
 	/**
 	 * @param Request $request
 	 * @return boolean
 	 */
-  private function isAdminChangeStatus(Payment $payment)
-  {
-    return $payment->getField('PS_STATUS_MESSAGE') == 'manual';
-  }
+	private function isAdminChangeStatus(Payment $payment)
+	{
+		$result = $payment->getField('PS_STATUS_MESSAGE') == 'manual';
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': isAdminChangeStatus: ' . print_r($result, true));
+
+		return $result;
+	}
 
 	/**
 	 * @param Payment $payment
@@ -183,16 +197,16 @@ class begateway_eripHandler
 	 * @throws Main\SystemException
 	 */
 	private function getTemplateParams(Payment $payment, array $eripBillData): array
-  {
+	{
 		$params = [
 			'sum' => PriceMaths::roundPrecision($payment->getSum() - $payment->getSumPaid()),
 			'currency' => $payment->getField('CURRENCY'),
-      'instruction' => $eripBillData['transaction']['erip']['instruction'],
-      'qr_code' => $eripBillData['transaction']['erip']['qr_code'],
-      'account_number' =>  $eripBillData['transaction']['erip']['account_number'],
-      'service_no_erip' => $eripBillData['transaction']['erip']['service_no_erip'],
-      'first_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST'),
-      'middle_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')
+			'instruction' => $eripBillData['transaction']['erip']['instruction'],
+			'qr_code' => $eripBillData['transaction']['erip']['qr_code'],
+			'account_number' => $eripBillData['transaction']['erip']['account_number'],
+			'service_no_erip' => $eripBillData['transaction']['erip']['service_no_erip'],
+			'first_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST'),
+			'middle_name' => $this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')
 		];
 
 		return $params;
@@ -207,14 +221,15 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	private function createEripBill(Payment $payment): ServiceResult {
+	private function createEripBill(Payment $payment): ServiceResult
+	{
 		$result = new ServiceResult();
 
 		$url = $this->getUrl($payment, 'sendEripBill');
 
-    $money = new \BeGateway\Module\Erip\Money;
-    $money->setCurrency($payment->getField('CURRENCY'));
-    $money->setAmount($payment->getSum());
+		$money = new \BeGateway\Module\Erip\Money;
+		$money->setCurrency($payment->getField('CURRENCY'));
+		$money->setAmount($payment->getSum());
 
 		$params = [
 			'request' => [
@@ -222,106 +237,63 @@ class begateway_eripHandler
 				'amount' => $money->getCents(),
 				'currency' => $payment->getField('CURRENCY'),
 				'description' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getPaymentDescription($payment), 255),
-				'tracking_id' => $payment->getId().self::TRACKING_ID_DELIMITER.$this->service->getField('ID'),
+				'tracking_id' => $payment->getId() . self::TRACKING_ID_DELIMITER . $this->service->getField('ID'),
 				'notification_url' => $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_NOTIFICATION_URL'),
 				'language' => LANGUAGE_ID,
-        'email' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_EMAIL')),
-        'ip' => $_SERVER['HTTP_CLIENT_IP'] ? : ($_SERVER['HTTP_X_FORWARDED_FOR'] ? : $_SERVER['REMOTE_ADDR']),
-        'customer' => [
-          'first_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST')),
-          'middle_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')),
-          'last_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_LAST')),
-          'city' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_CITY')),
-          'zip' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ZIP')),
-          'address' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ADDRESS')),
-          'phone' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_PHONE')),
-        ],
-        'payment_method' => [
-          'type' => 'erip',
-          'account_number' => \BeGateway\Module\Erip\Encoder::toUtf8(
-            $this->getAccountDescription($payment)
-          ),
-          'service_info' => \BeGateway\Module\Erip\Encoder::str_split(
-            \BeGateway\Module\Erip\Encoder::toUtf8($this->getPaymentDescription($payment))
-          ),
-          'receipt' => \BeGateway\Module\Erip\Encoder::str_split(
-            \BeGateway\Module\Erip\Encoder::toUtf8($this->getReceiptDescription($payment))
-          )
-        ],
-        'additional_data' => [
-		  'notifications' => $this->getNotificationOptions($payment),
-          'platform_data' => '1C-Bitrix' . ' v' . ModuleManager::getVersion('main'),
-          'integration_data' => 'BeGateway ERIP payment module ' . ' v' . ModuleManager::getVersion('begateway.erip')
-        ]
+				'email' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_EMAIL')),
+				'ip' => $_SERVER['HTTP_CLIENT_IP'] ? : ($_SERVER['HTTP_X_FORWARDED_FOR'] ? : $_SERVER['REMOTE_ADDR']),
+				'customer' => [
+						'first_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_FIRST')),
+						'middle_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_MIDDLE')),
+						'last_name' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_NAME_LAST')),
+						'city' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_CITY')),
+						'zip' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ZIP')),
+						'address' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_ADDRESS')),
+						'phone' => \BeGateway\Module\Erip\Encoder::toUtf8($this->getBusinessValue($payment, 'BUYER_PERSON_PHONE')),
+					],
+				'payment_method' => [
+					'type' => 'erip',
+					'account_number' => \BeGateway\Module\Erip\Encoder::toUtf8(
+						$this->getAccountDescription($payment)
+					),
+					'service_info' => \BeGateway\Module\Erip\Encoder::str_split(
+						\BeGateway\Module\Erip\Encoder::toUtf8($this->getPaymentDescription($payment))
+					),
+					'receipt' => \BeGateway\Module\Erip\Encoder::str_split(
+							\BeGateway\Module\Erip\Encoder::toUtf8($this->getReceiptDescription($payment))
+						)
+				],
+				'additional_data' => [
+					'notifications' => $this->getNotificationOptions($payment),
+					'platform_data' => '1C-Bitrix' . ' v' . ModuleManager::getVersion('main'),
+					'integration_data' => 'BeGateway ERIP payment module ' . ' v' . ModuleManager::getVersion('begateway.erip')
+				]
 			]
 		];
 
-    $service_code = trim($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SERVICE_CODE'));
-    if (isset($service_code) && !empty($service_code)) {
-      $params['request']['payment_method']['service_no'] = $service_code;
-    }
+		$service_code = trim($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SERVICE_CODE'));
+		if (isset($service_code) && !empty($service_code)) {
+			$params['request']['payment_method']['service_no'] = $service_code;
+		}
 
-    $timeout = intval($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_EXPIRY'));
+		$timeout = intval($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_EXPIRY'));
 
-    if ($timeout > 0) {
-      $params['request']['expired_at'] = date("c", $timeout*60 + time());
-    }
+		if ($timeout > 0) {
+			$params['request']['expired_at'] = date("c", $timeout * 60 + time());
+		}
 
 		$headers = $this->getHeaders($payment);
 
 		$sendResult = $this->send(self::SEND_METHOD_HTTP_POST, $url, $params, $headers);
-		if ($sendResult->isSuccess())
-		{
+		if ($sendResult->isSuccess()) {
 			$eripBillData = $sendResult->getData();
 			$verifyResponseResult = $this->verifyResponse($eripBillData);
-			if ($verifyResponseResult->isSuccess())
-			{
+			if ($verifyResponseResult->isSuccess()) {
 				$result->setData($eripBillData);
-			}
-			else
-			{
+			} else {
 				$result->addErrors($verifyResponseResult->getErrors());
 			}
-		}
-		else
-		{
-			$result->addErrors($sendResult->getErrors());
-		}
-
-		return $result;
-	}
-
-  /**
-	 * @param Payment $payment
-	 * @return ServiceResult
-	 * @throws Main\ArgumentException
-	 * @throws Main\ArgumentNullException
-	 * @throws Main\ArgumentOutOfRangeException
-	 * @throws Main\ArgumentTypeException
-	 * @throws Main\ObjectException
-	 */
-	private function deleteEripBill(Payment $payment): ServiceResult {
-		$result = new ServiceResult();
-
-		$url = $this->getUrl($payment, 'deleteEripBill');
-		$headers = $this->getHeaders($payment);
-
-		$sendResult = $this->send(self::SEND_METHOD_HTTP_DELETE, $url, [], $headers);
-		if ($sendResult->isSuccess())
-		{
-			$paymentData = $sendResult->getData();
-			$verifyResponseResult = $this->verifyResponse($paymentData);
-			if ($verifyResponseResult->isSuccess())
-			{
-				$result->setData($paymentData);
-			}
-			else
-			{
-				$result->addErrors($verifyResponseResult->getErrors());
-			}
-		}
-		else
-		{
+		} else {
 			$result->addErrors($sendResult->getErrors());
 		}
 
@@ -337,30 +309,61 @@ class begateway_eripHandler
 	 * @throws Main\ArgumentTypeException
 	 * @throws Main\ObjectException
 	 */
-	private function getBeGatewayEripPayment(Payment $payment): ServiceResult {
+	private function deleteEripBill(Payment $payment): ServiceResult
+	{
+		$result = new ServiceResult();
+
+		$url = $this->getUrl($payment, 'deleteEripBill');
+		$headers = $this->getHeaders($payment);
+
+		$sendResult = $this->send(self::SEND_METHOD_HTTP_DELETE, $url, [], $headers);
+		if ($sendResult->isSuccess()) {
+			$paymentData = $sendResult->getData();
+			$verifyResponseResult = $this->verifyResponse($paymentData);
+			if ($verifyResponseResult->isSuccess()) {
+				$result->setData($paymentData);
+			} else {
+				$result->addErrors($verifyResponseResult->getErrors());
+			}
+		} else {
+			$result->addErrors($sendResult->getErrors());
+		}
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': deleteEripBill: ' . print_r($result, true));
+
+		return $result;
+	}
+
+	/**
+	 * @param Payment $payment
+	 * @return ServiceResult
+	 * @throws Main\ArgumentException
+	 * @throws Main\ArgumentNullException
+	 * @throws Main\ArgumentOutOfRangeException
+	 * @throws Main\ArgumentTypeException
+	 * @throws Main\ObjectException
+	 */
+	private function getBeGatewayEripPayment(Payment $payment): ServiceResult
+	{
 		$result = new ServiceResult();
 
 		$url = $this->getUrl($payment, 'getEripBillStatus');
 		$headers = $this->getHeaders($payment);
 
 		$sendResult = $this->send(self::SEND_METHOD_HTTP_GET, $url, [], $headers);
-		if ($sendResult->isSuccess())
-		{
+		if ($sendResult->isSuccess()) {
 			$paymentData = $sendResult->getData();
 			$verifyResponseResult = $this->verifyResponse($paymentData);
-			if ($verifyResponseResult->isSuccess())
-			{
+			if ($verifyResponseResult->isSuccess()) {
 				$result->setData($paymentData);
-			}
-			else
-			{
+			} else {
 				$result->addErrors($verifyResponseResult->getErrors());
 			}
-		}
-		else
-		{
+		} else {
 			$result->addErrors($sendResult->getErrors());
 		}
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': getBeGatewayEripPayment: ' . print_r($result, true));
 
 		return $result;
 	}
@@ -377,56 +380,49 @@ class begateway_eripHandler
 	 * @throws Main\ArgumentTypeException
 	 * @throws Main\ObjectException
 	 */
-	private function send(string $method, string $url, array $params = [], array $headers = []): ServiceResult {
+	private function send(string $method, string $url, array $params = [], array $headers = []): ServiceResult
+	{
 		$result = new ServiceResult();
 
 		$httpClient = new HttpClient();
-		foreach ($headers as $name => $value)
-		{
+		foreach ($headers as $name => $value) {
 			$httpClient->setHeader($name, $value);
 		}
 
-    PaySystem\Logger::addDebugInfo(__CLASS__.': request url: '.$url);
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': request url: ' . $url);
 
-		if ($method === self::SEND_METHOD_HTTP_GET)
-		{
+		if ($method === self::SEND_METHOD_HTTP_GET) {
 			$response = $httpClient->get($url);
 		} else {
 			$postData = null;
-			if ($params)
-			{
+			if ($params) {
 				$postData = static::encode($params);
 			}
 
-			PaySystem\Logger::addDebugInfo(__CLASS__.': request data: '.$postData);
+			PaySystem\Logger::addDebugInfo(__CLASS__ . ': request data: ' . $postData);
 
-      $response = $httpClient->query($method, $url, $postData);
+			$response = $httpClient->query($method, $url, $postData);
 
-      if ($response) {
-        $response = $httpClient->getResult();
-      }
+			if ($response) {
+				$response = $httpClient->getResult();
+			}
 		}
 
-		if ($response === false)
-		{
+		if ($response === false) {
 			$errors = $httpClient->getError();
-			foreach ($errors as $code => $message)
-			{
+			foreach ($errors as $code => $message) {
 				$result->addError(PaySystem\Error::create($message, $code));
 			}
 
 			return $result;
 		}
 
-		PaySystem\Logger::addDebugInfo(__CLASS__.': response data: '.$response);
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': response data: ' . $response);
 
 		$response = static::decode($response);
-		if ($response)
-		{
+		if ($response) {
 			$result->setData($response);
-		}
-		else
-		{
+		} else {
 			$result->addError(PaySystem\Error::create(Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_RESPONSE_DECODE_ERROR')));
 		}
 
@@ -437,11 +433,11 @@ class begateway_eripHandler
 	 * @param array $response
 	 * @return ServiceResult
 	 */
-	private function verifyResponse(array $response): ServiceResult {
+	private function verifyResponse(array $response): ServiceResult
+	{
 		$result = new ServiceResult();
 
-		if (!empty($response['errors']))
-		{
+		if (!empty($response['errors'])) {
 			$result->addError(PaySystem\Error::create($response['message']));
 		}
 
@@ -451,7 +447,8 @@ class begateway_eripHandler
 	/**
 	 * @return array|string[]
 	 */
-	public function getCurrencyList(): array {
+	public function getCurrencyList(): array
+	{
 		return ['BYN'];
 	}
 
@@ -465,27 +462,29 @@ class begateway_eripHandler
 	 * @throws Main\ArgumentTypeException
 	 * @throws Main\ObjectException
 	 */
-	public function processRequest(Payment $payment, Request $request): ServiceResult {
+	public function processRequest(Payment $payment, Request $request): ServiceResult
+	{
 		$result = new ServiceResult();
 
 		$inputStream = static::readFromStream();
 		$data = static::decode($inputStream);
 		$transaction = $data['transaction'];
 
-    if (!$this->isSignatureCorrect($payment, $inputStream)) {
+		if (!$this->isSignatureCorrect($payment, $inputStream)) {
 			$result->addError(
 				PaySystem\Error::create(
 					Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_ERROR_SIGNATURE')
 				)
 			);
-    } else {
-      return $this->processPayment($payment);
-    }
+		} else {
+			return $this->processPayment($payment);
+		}
 
-    return $result;
-  }
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': processRequest: ' . print_r($result, true));
+		return $result;
+	}
 
-   /**
+	/**
 	 * @param Payment $payment
 	 * @return ServiceResult
 	 * @throws Main\ArgumentException
@@ -494,23 +493,22 @@ class begateway_eripHandler
 	 * @throws Main\ArgumentTypeException
 	 * @throws Main\ObjectException
 	 */
-  private function processPayment($payment) : ServiceResult {
-    $result = new ServiceResult;
+	private function processPayment($payment): ServiceResult
+	{
+		$result = new ServiceResult;
 
 		$beGatewayEripPaymentResult = $this->getBeGatewayEripPayment($payment);
-		if ($beGatewayEripPaymentResult->isSuccess())
-		{
+		if ($beGatewayEripPaymentResult->isSuccess()) {
 			$beGatewayEripPaymentData = $beGatewayEripPaymentResult->getData();
-			if ($beGatewayEripPaymentData['transaction']['status'] === self::STATUS_SUCCESSFUL_CODE)
-			{
-        $transaction = $beGatewayEripPaymentData['transaction'];
+			if ($beGatewayEripPaymentData['transaction']['status'] === self::STATUS_SUCCESSFUL_CODE) {
+				$transaction = $beGatewayEripPaymentData['transaction'];
 				$description = Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_TRANSACTION', [
 					'#ID#' => $transaction['uid'],
 				]);
 
-        $money = new \BeGateway\Module\Erip\Money;
-        $money->setCurrency($transaction['currency']);
-        $money->setCents($transaction['amount']);
+				$money = new \BeGateway\Module\Erip\Money;
+				$money->setCurrency($transaction['currency']);
+				$money->setCents($transaction['amount']);
 
 				$fields = [
 					'PS_STATUS_CODE' => $transaction['status'],
@@ -521,75 +519,63 @@ class begateway_eripHandler
 					'PS_RESPONSE_DATE' => new Main\Type\DateTime()
 				];
 
-				if ($this->isSumCorrect($payment, $money->getAmount()))
-				{
+				if ($this->isSumCorrect($payment, $money->getAmount())) {
 					$fields['PS_STATUS'] = 'Y';
 
 					PaySystem\Logger::addDebugInfo(
-						__CLASS__.': PS_CHANGE_STATUS_PAY='.$this->getBusinessValue($payment, 'PS_CHANGE_STATUS_PAY')
+						__CLASS__ . ': PS_CHANGE_STATUS_PAY=' . $this->getBusinessValue($payment, 'PS_CHANGE_STATUS_PAY')
 					);
 
-					if ($this->getBusinessValue($payment, 'PS_CHANGE_STATUS_PAY') === 'Y')
-					{
+					if ($this->getBusinessValue($payment, 'PS_CHANGE_STATUS_PAY') === 'Y') {
 						$result->setOperationType(PaySystem\ServiceResult::MONEY_COMING);
 					}
-				}
-				else
-				{
+				} else {
 					$error = Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_ERROR_SUM');
-					$fields['PS_STATUS_DESCRIPTION'] .= '. '.$error;
+					$fields['PS_STATUS_DESCRIPTION'] .= '. ' . $error;
 					$result->addError(PaySystem\Error::create($error));
 				}
 
 				$result->setPsData($fields);
-			}
-			else
-			{
-				$result->addError(
-					PaySystem\Error::create(
-						Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_ERROR_STATUS',
-							[
-								'#STATUS#' => $transaction['status'],
-							]
-						)
-					)
-				);
-			}
-		}
-		else
-		{
+			} 
+		} else {
 			$result->addErrors($beGatewayEripPaymentResult->getErrors());
 		}
 
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': processPayment: ' . print_r($result, true));
 		return $result;
 	}
 
-  /*
+	/*
 	 * @param Payment $payment
 	 * @param string Request $inputStream
 	 * @return bool
-  */
-  private function isSignatureCorrect(Payment $payment, $inputStream) {
-    $signature = $_SERVER['HTTP_CONTENT_SIGNATURE'];
+	 */
+	private function isSignatureCorrect(Payment $payment, $inputStream)
+	{
+		$signature = $_SERVER['HTTP_CONTENT_SIGNATURE'];
 
 		PaySystem\Logger::addDebugInfo(
-			__CLASS__.': Signature: '.$signature."; Webhook: ".$inputStream
+			__CLASS__ . ': Signature: ' . $signature . "; Webhook: " . $inputStream
 		);
 
-    $signature  = base64_decode($_SERVER['HTTP_CONTENT_SIGNATURE']);
+		$signature = base64_decode($_SERVER['HTTP_CONTENT_SIGNATURE']);
 
-    if (!$signature) {
-      return false;
-    }
+		if (!$signature) {
+			return false;
+		}
 
-    $public_key = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_PUBLIC_KEY');
-    $public_key = str_replace(array("\r\n", "\n"), '', $public_key);
-    $public_key = chunk_split($public_key, 64);
-    $public_key = "-----BEGIN PUBLIC KEY-----\n" . $public_key . "-----END PUBLIC KEY-----";
-    $key = openssl_pkey_get_public($public_key);
+		$public_key = $this->getBusinessValue($payment, 'BEGATEWAY_ERIP_PUBLIC_KEY');
+		$public_key = str_replace(array("\r\n", "\n"), '', $public_key);
+		$public_key = chunk_split($public_key, 64);
+		$public_key = "-----BEGIN PUBLIC KEY-----\n" . $public_key . "-----END PUBLIC KEY-----";
+		$key = openssl_pkey_get_public($public_key);
 
-    return openssl_verify($inputStream, $signature, $key, OPENSSL_ALGO_SHA256) == 1;
-  }
+		$result = openssl_verify($inputStream, $signature, $key, OPENSSL_ALGO_SHA256) == 1;
+
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': isSignatureCorrect: ' . print_r($result, true));
+
+		return $result;
+	}
 
 	/**
 	 * @param Payment $payment
@@ -600,12 +586,16 @@ class begateway_eripHandler
 	 * @throws Main\ArgumentTypeException
 	 * @throws Main\ObjectException
 	 */
-	private function isSumCorrect(Payment $payment, $sum): bool {
+	private function isSumCorrect(Payment $payment, $sum): bool
+	{
 		PaySystem\Logger::addDebugInfo(
-			__CLASS__.': bePaidSum='.PriceMaths::roundPrecision($sum)."; paymentSum=".PriceMaths::roundPrecision($payment->getSum())
+			__CLASS__ . ': bePaidSum=' . PriceMaths::roundPrecision($sum) . "; paymentSum=" . PriceMaths::roundPrecision($payment->getSum())
 		);
 
-		return PriceMaths::roundPrecision($sum) === PriceMaths::roundPrecision($payment->getSum());
+
+		$result = PriceMaths::roundPrecision($sum) === PriceMaths::roundPrecision($payment->getSum());
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': isSumCorrect: ' . print_r($result, true));
+		return $result;
 	}
 
 	/**
@@ -613,20 +603,18 @@ class begateway_eripHandler
 	 * @param int $paySystemId
 	 * @return bool
 	 */
-	public static function isMyResponse(Request $request, $paySystemId): bool {
+	public static function isMyResponse(Request $request, $paySystemId): bool
+	{
 		$inputStream = static::readFromStream();
-		if ($inputStream)
-		{
+		if ($inputStream) {
 			$data = static::decode($inputStream);
-			if ($data === false)
-			{
+			if ($data === false) {
 				return false;
 			}
 
-			if (isset($data['transaction']['tracking_id']))
-			{
+			if (isset($data['transaction']['tracking_id'])) {
 				[, $trackingPaySystemId] = explode(self::TRACKING_ID_DELIMITER, $data['transaction']['tracking_id']);
-				return (int)$trackingPaySystemId === (int)$paySystemId;
+				return (int) $trackingPaySystemId === (int) $paySystemId;
 			}
 		}
 
@@ -637,15 +625,14 @@ class begateway_eripHandler
 	 * @param Request $request
 	 * @return bool|int|mixed
 	 */
-	public function getPaymentIdFromRequest(Request $request) {
+	public function getPaymentIdFromRequest(Request $request)
+	{
 		$inputStream = static::readFromStream();
-		if ($inputStream)
-		{
+		if ($inputStream) {
 			$data = static::decode($inputStream);
-			if (isset($data['transaction']['tracking_id']))
-			{
+			if (isset($data['transaction']['tracking_id'])) {
 				[$trackingPaymentId] = explode(self::TRACKING_ID_DELIMITER, $data['transaction']['tracking_id']);
-				return (int)$trackingPaymentId;
+				return (int) $trackingPaymentId;
 			}
 		}
 
@@ -661,7 +648,8 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	private function getPaymentDescription(Payment $payment) {
+	private function getPaymentDescription(Payment $payment)
+	{
 		return $this->setDescriptionPlaceholders('BEGATEWAY_ERIP_PAYMENT_DESCRIPTION', $payment);
 	}
 
@@ -674,7 +662,8 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	private function getReceiptDescription(Payment $payment) {
+	private function getReceiptDescription(Payment $payment)
+	{
 		return $this->setDescriptionPlaceholders('BEGATEWAY_ERIP_RECEIPT_PAYMENT_DESCRIPTION', $payment);
 	}
 
@@ -687,7 +676,8 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	private function getAccountDescription(Payment $payment) {
+	private function getAccountDescription(Payment $payment)
+	{
 		return $this->setDescriptionPlaceholders('BEGATEWAY_ERIP_PAYMENT_ACCOUNT', $payment);
 	}
 
@@ -700,13 +690,14 @@ class begateway_eripHandler
 	 * @throws Main\ObjectPropertyException
 	 * @throws Main\SystemException
 	 */
-	private function setDescriptionPlaceholders(string $description, Payment $payment) {
+	private function setDescriptionPlaceholders(string $description, Payment $payment)
+	{
 		/** @var PaymentCollection $collection */
 		$collection = $payment->getCollection();
 		$order = $collection->getOrder();
 		$userEmail = $order->getPropertyCollection()->getUserEmail();
 
-		$processed_description =  str_replace(
+		$processed_description = str_replace(
 			[
 				'#PAYMENT_NUMBER#',
 				'#ORDER_NUMBER#',
@@ -736,7 +727,7 @@ class begateway_eripHandler
 		$headers = [
 			'Content-Type' => 'application/json',
 			'Accept' => 'application/json',
-			'Authorization' => 'Basic '.$this->getBasicAuthString($payment),
+			'Authorization' => 'Basic ' . $this->getBasicAuthString($payment),
 			'RequestID' => $this->getIdempotenceKey(),
 		];
 
@@ -747,7 +738,8 @@ class begateway_eripHandler
 	 * @param Payment $payment
 	 * @return string
 	 */
-	private function getBasicAuthString(Payment $payment): string {
+	private function getBasicAuthString(Payment $payment): string
+	{
 		return base64_encode(
 			$this->getBusinessValue($payment, 'BEGATEWAY_ERIP_ID')
 			. ':'
@@ -758,13 +750,18 @@ class begateway_eripHandler
 	/**
 	 * @return string
 	 */
-	private function getIdempotenceKey(): string {
-		return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-			mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+	private function getIdempotenceKey(): string
+	{
+		return sprintf(
+			'%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff),
 			mt_rand(0, 0xffff),
 			mt_rand(0, 0x0fff) | 0x4000,
 			mt_rand(0, 0x3fff) | 0x8000,
-			mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff)
 		);
 	}
 
@@ -773,13 +770,16 @@ class begateway_eripHandler
 	 * @param string $action
 	 * @return string
 	 */
-	protected function getUrl(Payment $payment = null, $action): string {
+	protected function getUrl(Payment $payment = null, $action): string
+	{
 		$url = parent::getUrl($payment, $action);
-		if ($payment !== null &&
-        in_array(
-          $action, ['getEripBillStatus', 'deleteEripBill']
-        ))
-		{
+		if (
+			$payment !== null &&
+			in_array(
+				$action,
+				['getEripBillStatus', 'deleteEripBill']
+			)
+		) {
 			$url = str_replace('#uid#', $payment->getField('PS_INVOICE_ID'), $url);
 		}
 
@@ -789,11 +789,12 @@ class begateway_eripHandler
 	/**
 	 * @return array
 	 */
-	protected function getUrlList(): array {
+	protected function getUrlList(): array
+	{
 		return [
-			'sendEripBill' => self::API_URL.'/beyag/payments',
-      'getEripBillStatus' => self::API_URL.'/beyag/payments/#uid#',
-      'deleteEripBill' => self::API_URL.'/beyag/payments/#uid#'
+			'sendEripBill' => self::API_URL . '/beyag/payments',
+			'getEripBillStatus' => self::API_URL . '/beyag/payments/#uid#',
+			'deleteEripBill' => self::API_URL . '/beyag/payments/#uid#'
 		];
 	}
 
@@ -801,7 +802,8 @@ class begateway_eripHandler
 	 * @param Payment $payment
 	 * @return bool
 	 */
-	protected function isTestMode(Payment $payment = null): bool {
+	protected function isTestMode(Payment $payment = null): bool
+	{
 		return ($this->getBusinessValue($payment, 'PS_IS_TEST') === 'Y');
 	}
 
@@ -809,10 +811,11 @@ class begateway_eripHandler
 	 * @param Payment $payment
 	 * @return array
 	 */
-	protected function getNotificationOptions(Payment $payment = null): array {
+	protected function getNotificationOptions(Payment $payment = null): array
+	{
 		$options = [];
 		if ($this->getBusinessValue($payment, 'BEGATEWAY_ERIP_SMS_NOTIFICATION') === 'Y') {
-			$options []= 'sms';
+			$options[] = 'sms';
 		}
 		return $options;
 	}
@@ -820,7 +823,8 @@ class begateway_eripHandler
 	/**
 	 * @return bool|string
 	 */
-	private static function readFromStream() {
+	private static function readFromStream()
+	{
 		return file_get_contents('php://input');
 	}
 
@@ -829,7 +833,8 @@ class begateway_eripHandler
 	 * @return mixed
 	 * @throws Main\ArgumentException
 	 */
-	private static function encode(array $data) {
+	private static function encode(array $data)
+	{
 		return Main\Web\Json::encode($data, JSON_UNESCAPED_UNICODE);
 	}
 
@@ -837,13 +842,11 @@ class begateway_eripHandler
 	 * @param string $data
 	 * @return mixed
 	 */
-	private static function decode($data) {
-		try
-		{
+	private static function decode($data)
+	{
+		try {
 			return Main\Web\Json::decode($data);
-		}
-		catch (Main\ArgumentException $exception)
-		{
+		} catch (Main\ArgumentException $exception) {
 			return false;
 		}
 	}
