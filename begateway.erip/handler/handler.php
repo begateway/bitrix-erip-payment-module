@@ -389,7 +389,7 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 			$httpClient->setHeader($name, $value);
 		}
 
-		PaySystem\Logger::addDebugInfo(__CLASS__ . ': request url: ' . $url);
+		PaySystem\Logger::addDebugInfo(__CLASS__ . ': Method: ' . $method . '. request url: ' . $url);
 
 		if ($method === self::SEND_METHOD_HTTP_GET) {
 			$response = $httpClient->get($url);
@@ -470,6 +470,14 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 		$data = static::decode($inputStream);
 		$transaction = $data['transaction'];
 
+        if (is_null($payment->getField('PS_INVOICE_ID'))) {
+            PaySystem\Logger::addError(__CLASS__ . ': processRequest no $payment PS_INVOICE_ID: ' . print_r($payment, true));
+            $error = Loc::getMessage('SALE_HPS_BEGATEWAY_ERIP_ERROR_INVOICE_ID');
+            $error = sprintf($error, $transaction['uid']);
+
+            return $result;
+        }
+
 		if (!$this->isSignatureCorrect($payment, $inputStream)) {
 			$result->addError(
 				PaySystem\Error::create(
@@ -496,6 +504,8 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 	private function processPayment($payment): ServiceResult
 	{
 		$result = new ServiceResult;
+
+        PaySystem\Logger::addDebugInfo(__CLASS__ . ': processPayment $payment: ' . print_r($payment, true));
 
 		$beGatewayEripPaymentResult = $this->getBeGatewayEripPayment($payment);
 		if ($beGatewayEripPaymentResult->isSuccess()) {
@@ -849,5 +859,5 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 		} catch (Main\ArgumentException $exception) {
 			return false;
 		}
-	}
+    }
 }
