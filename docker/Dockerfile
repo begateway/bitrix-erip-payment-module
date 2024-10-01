@@ -14,8 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 ADD ./configs/php*.ini /usr/local/etc/php/conf.d/
 
-#COPY business_encode_20.tar.gz /var/www/html/business_encode.tar.gz
-#COPY business_encode.tar.gz /var/www/html/business_encode.tar.gz
+#COPY business_encode_24.tar.gz /var/www/html/business_encode.tar.gz
 ADD https://www.1c-bitrix.ru/download/business_encode.tar.gz /var/www/html/
 
 WORKDIR "/var/www/html/"
