@@ -39,7 +39,12 @@ class EventHandler {
       if ($result->isSuccess()) {
         // отсылаем письмо с инструкцией
         $data = $result->getData();
-        for ($i = 0;$i < $data['counter']; $i++) {
+        for ($i = 0; $i < count($data['ids']); $i++) {
+          // BEP-29814: params[$i] is null when the existing pending bill was
+          // reused unchanged — no need to re-email the customer.
+          if (empty($data['params'][$i])) {
+            continue;
+          }
           $collection = $order->getPaymentCollection();
           $payment = $collection->getItemById($data['ids'][$i]);
 
@@ -113,10 +118,11 @@ class EventHandler {
         continue;
       }
 
-      // пропускаем счета уже выставленные в ЕРИП
-      if (!empty($payment->getField('PS_INVOICE_ID'))) {
-       continue;
-      }
+      // BEP-29814: do NOT skip when PS_INVOICE_ID is set — let the handler
+      // decide whether the existing bill is still valid for the current sum.
+      // The handler will recreate the bill when amount/currency drift is
+      // detected, and return a new PS_INVOICE_ID via setPsData.
+      $oldInvoiceId = $payment->getField('PS_INVOICE_ID');
 
       $request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
       // вызываем обработчик платежной системы, чтобы создать счет
@@ -133,12 +139,23 @@ class EventHandler {
 
         // сохраняем номер операции ЕРИП в данных способа оплаты
         $psData = $result->getPsData();
-        if ($psData['PS_INVOICE_ID']) {
-          $payment->setField('PS_INVOICE_ID', $psData['PS_INVOICE_ID']);
-          $order->save();
+        $newInvoiceId = isset($psData['PS_INVOICE_ID']) ? $psData['PS_INVOICE_ID'] : null;
+
+        if ($newInvoiceId) {
+          $payment->setField('PS_INVOICE_ID', $newInvoiceId);
+
+          // Always count success — the payment ends with a valid bill.
           $resultStorage['ids'] []= $payment->getId();
-          // сохраняем данные ЕРИП счета для шаблона письма
-          $resultStorage['params'] []= $result->getData();
+
+          // Re-send instructions to the customer only when a brand-new bill
+          // was actually issued (initial create OR amount-drift recreate).
+          // Reuse of an unchanged pending bill must NOT re-trigger the email.
+          if ($newInvoiceId !== $oldInvoiceId) {
+            $order->save();
+            $resultStorage['params'] []= $result->getData();
+          } else {
+            $resultStorage['params'] []= null;
+          }
         }
       }
 
