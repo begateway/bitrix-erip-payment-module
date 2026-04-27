@@ -6,7 +6,7 @@ services:
       context: ./docker
       dockerfile: Dockerfile
     ports:
-      - 80:80
+      - 8088:80
     depends_on:
       - mysql
     tty: true

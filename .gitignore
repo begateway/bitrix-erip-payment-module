@@ -1,4 +1,6 @@
 .DS_Store
+.omc/
+.claude/
 .tags*
 docker/busines_encode_15_0.tar.gz
 docker/business_encode_16.tar.gz
@@ -8,3 +10,11 @@ docker/business_encode.tar.gz
 docker/business_encode_23.tar.gz
 bitrix-begateway-erip.zip
 docker/business_encode_24.tar.gz
+
+# test artefacts
+node_modules/
+tests/feature/node_modules/
+tests/feature/.omc/
+test-results/
+playwright-report/
+/tmp/bitrix-wizard/

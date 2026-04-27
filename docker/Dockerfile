@@ -1,4 +1,4 @@
-FROM php:8.0-apache
+FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y \
     libzip-dev unzip vim less libgd-dev \
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 ADD ./configs/php*.ini /usr/local/etc/php/conf.d/
 
-#COPY business_encode_24.tar.gz /var/www/html/business_encode.tar.gz
+#COPY business_encode_23.tar.gz /var/www/html/business_encode.tar.gz
 ADD https://www.1c-bitrix.ru/download/business_encode.tar.gz /var/www/html/
 
 WORKDIR "/var/www/html/"
