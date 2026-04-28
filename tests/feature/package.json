@@ -1,0 +1,11 @@
+{
+  "name": "bitrix-erip-feature-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "wizard": "node bitrix-wizard.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

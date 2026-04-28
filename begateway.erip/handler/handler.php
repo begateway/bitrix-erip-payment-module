@@ -62,9 +62,29 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 				PaySystem\Logger::addDebugInfo(__CLASS__ . ': createEripBill');
 				$createEripBillResult = $this->createEripBill($payment);
 			} else {
-				# счет был уже создан и нужно получить данные для шаблона
+				# счет был уже создан — получаем его и проверяем актуальность суммы (BEP-29814)
 				PaySystem\Logger::addDebugInfo(__CLASS__ . ': getBeGatewayEripPayment');
 				$createEripBillResult = $this->getBeGatewayEripPayment($payment);
+
+				if ($createEripBillResult->isSuccess()) {
+					$staleCheck = $this->isExistingBillStale($payment, $createEripBillResult->getData());
+					PaySystem\Logger::addDebugInfo(__CLASS__ . ': bill staleness check: ' . print_r($staleCheck, true));
+					if ($staleCheck['stale']) {
+						$deleteResult = $this->deleteEripBill($payment);
+						if (!$deleteResult->isSuccess()) {
+							PaySystem\Logger::addError(
+								__CLASS__ . ': failed to delete stale ERIP bill before recreate: '
+								. print_r($deleteResult->getErrors(), true)
+							);
+							$result->addErrors($deleteResult->getErrors());
+							return $result;
+						}
+						# clear stale uid so createEripBill is treated as a fresh create downstream
+						$payment->setField('PS_INVOICE_ID', '');
+						PaySystem\Logger::addDebugInfo(__CLASS__ . ': createEripBill (after stale-bill delete)');
+						$createEripBillResult = $this->createEripBill($payment);
+					}
+				}
 			}
 
 			PaySystem\Logger::addDebugInfo(__CLASS__ . ': createEripBillResult: ' . print_r($createEripBillResult, true));
@@ -427,6 +447,45 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 		}
 
 		return $result;
+	}
+
+	/**
+	 * BEP-29814: detect whether an existing pending ERIP bill no longer matches
+	 * the current Bitrix Payment (amount or currency drift). Paid/failed/refunded
+	 * bills are never considered stale — they must be left alone for reconciliation.
+	 *
+	 * @param Payment $payment
+	 * @param array $billData decoded GET /beyag/payments/{uid} response
+	 * @return array ['stale' => bool, 'reason' => string]
+	 */
+	private function isExistingBillStale(Payment $payment, array $billData): array
+	{
+		$tx = isset($billData['transaction']) ? $billData['transaction'] : null;
+		if (empty($tx) || empty($tx['uid'])) {
+			return ['stale' => false, 'reason' => 'no transaction in response'];
+		}
+
+		$status = isset($tx['status']) ? $tx['status'] : null;
+		if ($status !== null && $status !== 'pending') {
+			return ['stale' => false, 'reason' => "non-pending bill status '$status'"];
+		}
+
+		$currency = $payment->getField('CURRENCY');
+		if (!empty($tx['currency']) && $tx['currency'] !== $currency) {
+			return ['stale' => true, 'reason' => "currency drift bill={$tx['currency']} payment=$currency"];
+		}
+
+		$expected = new \BeGateway\Module\Erip\Money();
+		$expected->setCurrency($currency);
+		$expected->setAmount($payment->getSum());
+		$expectedCents = (int)$expected->getCents();
+		$actualCents = isset($tx['amount']) ? (int)$tx['amount'] : -1;
+
+		if ($expectedCents !== $actualCents) {
+			return ['stale' => true, 'reason' => "amount drift bill=$actualCents expected=$expectedCents"];
+		}
+
+		return ['stale' => false, 'reason' => 'matches'];
 	}
 
 	/**
