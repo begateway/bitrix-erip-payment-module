@@ -257,7 +257,7 @@ function invokeInitiatePay(int $orderId, bool $manual = false): array {
 $paySystemId = getPaySystemId();
 out(">> using begateway.erip pay system id=$paySystemId");
 
-section('F1: BEP-29814 — basket sum lowered after bill issuance must recreate the bePaid bill');
+section('F1: BEP-30748 — saving a changed payment automatically recreates the bePaid bill');
 {
     $A = 63.60; // initial
     $B = 39.44; // operator-edited
@@ -279,12 +279,12 @@ section('F1: BEP-29814 — basket sum lowered after bill issuance must recreate 
     changePaymentSum($orderId, $B);
     out("operator changed sum: $A -> $B");
 
-    // Step 3 — handler runs again (manual mode emulates admin EA status change)
-    $r2 = invokeInitiatePay($orderId, true);
-    assertTrue($r2['success'], 'second initiatePay succeeds');
-    $uidB = $r2['ps_invoice_id'];
+    // Step 3 — BEP-30748: the payment/order saved events invoke the handler
+    // automatically; no payment-page render or EA status toggle is required.
+    $paymentAfterChange = reloadOrder($orderId)->getPaymentCollection()->current();
+    $uidB = $paymentAfterChange->getField('PS_INVOICE_ID');
     assertTrue(!empty($uidB), 'new bill UID stored on Payment');
-    assertTrue($uidB !== $uidA, 'PS_INVOICE_ID changed (recreate happened)');
+    assertTrue($uidB !== $uidA, 'PS_INVOICE_ID changed during the order save');
 
     // Step 4 — verify bePaid: old bill gone (or non-pending), new bill has 3944
     if ($uidB) {
@@ -322,6 +322,21 @@ section('F2: idempotent re-render — sum unchanged, no recreate, no new email')
     assertEq(2500, (int)($bill['body']['transaction']['amount'] ?? -1), 'bill amount unchanged at 2500');
 
     if ($uid2) bepaidRequest('DELETE', "/beyag/payments/$uid2");
+}
+
+section('F2b: initiatePay data remains available to Bitrix success-event listeners');
+{
+    $A = 24.00;
+    $order = makeOrder($paySystemId, $A);
+    $orderId = $order->getId();
+    $r = invokeInitiatePay($orderId);
+    $paymentId = reloadOrder($orderId)->getPaymentCollection()->current()->getId();
+    $stored = \BeGateway\Module\Erip\PaymentData::get($paymentId);
+
+    assertTrue($r['success'], 'initiatePay succeeds');
+    assertEq($r['data'], $stored, 'PaymentData API exposes ServiceResult::getData payload');
+
+    if ($r['ps_invoice_id']) bepaidRequest('DELETE', "/beyag/payments/{$r['ps_invoice_id']}");
 }
 
 section('F4: cancel via PaySystem::cancel deletes the bill in bePaid');
@@ -374,20 +389,28 @@ section('F5: instruction email fires on bill creation but not on idempotent re-t
     $uidAfterRetoggle = reloadOrder($orderId)->getPaymentCollection()->current()->getField('PS_INVOICE_ID');
     assertEq($uidInitial, $uidAfterRetoggle, 'bill UID unchanged on idempotent re-toggle');
 
-    // 5c — change basket sum, then re-toggle to EA → patched handler recreates the bill,
-    //       and event_handler must enqueue a fresh instruction email for the new sum.
+    // 5c — BEP-30748: saving the changed sum itself recreates the bill and
+    //       enqueues fresh instructions, without requiring a status re-toggle.
     changePaymentSum($orderId, 5.67);
-    $r = setOrderStatus($orderId, 'N');
-    assertTrue($r['success'], 'setStatus N before recreate succeeds');
-    $r = setOrderStatus($orderId, 'EA');
-    assertTrue($r['success'], 'setStatus EA after sum change succeeds');
     $afterRecreate = countEripMails();
-    assertEq($afterRetoggle + 1, $afterRecreate, 'one extra mail enqueued after amount-drift recreate');
+    assertEq($afterRetoggle + 1, $afterRecreate, 'one extra mail enqueued during amount-change save');
 
     $uidAfterRecreate = reloadOrder($orderId)->getPaymentCollection()->current()->getField('PS_INVOICE_ID');
     assertTrue($uidAfterRecreate !== $uidInitial && !empty($uidAfterRecreate),
-        'bill UID changed after sum-drift recreate (was=' . substr((string)$uidInitial, 0, 8)
+        'bill UID changed during sum-drift save (was=' . substr((string)$uidInitial, 0, 8)
         . '... now=' . substr((string)$uidAfterRecreate, 0, 8) . '...)');
+
+    // A later idempotent EA re-toggle must not recreate or re-email.
+    $r = setOrderStatus($orderId, 'N');
+    assertTrue($r['success'], 'setStatus N after recreate succeeds');
+    $r = setOrderStatus($orderId, 'EA');
+    assertTrue($r['success'], 'setStatus EA after recreate succeeds');
+    assertEq($afterRecreate, countEripMails(), 'no extra mail on post-recreate EA re-toggle');
+    assertEq(
+        $uidAfterRecreate,
+        reloadOrder($orderId)->getPaymentCollection()->current()->getField('PS_INVOICE_ID'),
+        'bill UID unchanged on post-recreate EA re-toggle'
+    );
 
     // cleanup bePaid bill
     if ($uidAfterRecreate) bepaidRequest('DELETE', "/beyag/payments/$uidAfterRecreate");

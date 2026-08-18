@@ -1,6 +1,6 @@
 <?php
 /**
- * BEP-29814 e2e tests against the bePaid sandbox.
+ * BEP-29814 / BEP-30748 e2e tests against the bePaid sandbox.
  *
  * Run: php tests/e2e/run_erip_tests.php
  *
@@ -87,7 +87,7 @@ function bepaid_request(string $method, string $path, ?array $body = null): arra
     return ['status' => (int)$code, 'body' => $decoded, 'raw' => (string)$raw];
 }
 
-function createBill(int $amountCents, string $tracking, string $description = 'BEP-29814 e2e'): array {
+function createBill(int $amountCents, string $tracking, string $description = 'BEP-30748 e2e'): array {
     return bepaid_request('POST', '/beyag/payments', [
         'request' => [
             'test'           => true,
@@ -111,8 +111,8 @@ function createBill(int $amountCents, string $tracking, string $description = 'B
             'payment_method' => [
                 'type'           => 'erip',
                 'account_number' => 'acc-' . substr($tracking, 0, 20),
-                'service_info'   => ['BEP-29814 e2e'],
-                'receipt'        => ['BEP-29814 receipt'],
+                'service_info'   => ['BEP-30748 e2e'],
+                'receipt'        => ['BEP-30748 receipt'],
             ],
         ],
     ]);
@@ -171,16 +171,16 @@ section('Test 1: round-trip create + GET');
     }
 }
 
-section('Test 2: BEP-29814 — delete-and-recreate when sum changes');
+section('Test 2: BEP-30748 — delete-and-recreate 252.44 BYN bill as 483.14 BYN');
 {
     $tracking = 'tc2-' . time();
-    // Step A: customer placed order, bill issued for 63.60
-    $a = createBill(6360, $tracking, 'tc2 initial 63.60');
+    // Order 8122 from BEP-30748: the initial bill was 252.44 BYN.
+    $a = createBill(25244, $tracking, 'tc2 BEP-30748 initial 252.44');
     $uidOld = $a['body']['transaction']['uid'] ?? null;
     assertTrue($uidOld !== null, 'initial bill created');
-    assertEq(6360, (int)($a['body']['transaction']['amount'] ?? -1), 'initial amount = 6360');
+    assertEq(25244, (int)($a['body']['transaction']['amount'] ?? -1), 'initial amount = 25244');
 
-    // Step B: merchant edits the order, sum drops to 39.44 → patched handler
+    // Step B: 1C updates the order/payment sum to 483.14 → patched handler
     // path: GET old bill, detect drift, DELETE, then POST new bill.
     if ($uidOld) {
         $del = deleteBill($uidOld);
@@ -188,17 +188,17 @@ section('Test 2: BEP-29814 — delete-and-recreate when sum changes');
             'DELETE old bill returns 200/204 (got ' . $del['status'] . ')');
     }
 
-    $b = createBill(3944, $tracking . '-v2', 'tc2 recreated 39.44');
+    $b = createBill(48314, $tracking . '-v2', 'tc2 BEP-30748 recreated 483.14');
     $uidNew = $b['body']['transaction']['uid'] ?? null;
     assertTrue($uidNew !== null, 'new bill created');
     assertTrue($uidNew !== $uidOld, 'recreated bill has a new UID');
-    assertEq(3944, (int)($b['body']['transaction']['amount'] ?? -1), 'new amount = 3944 (39.44 BYN)');
+    assertEq(48314, (int)($b['body']['transaction']['amount'] ?? -1), 'new amount = 48314 (483.14 BYN)');
 
     // Step C: verify a fresh GET on the new bill shows the new amount
     if ($uidNew) {
         $g = getBill($uidNew);
-        assertEq(3944, (int)($g['body']['transaction']['amount'] ?? -1),
-            'GET on new bill shows 3944 (no stale state leaked)');
+        assertEq(48314, (int)($g['body']['transaction']['amount'] ?? -1),
+            'GET on new bill shows 48314 (no stale state leaked)');
         deleteBill($uidNew);
     }
 }

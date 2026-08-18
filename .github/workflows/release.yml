@@ -15,7 +15,7 @@ jobs:
       with:
         type: 'zip'
         filename: 'bitrix-begateway-erip.zip'
-        exclusions: '*.git* docker* LICENSE* Makefile README* *.zip /*docker/* *.png *.pdf'
+        exclusions: '*.git* docker* LICENSE* Makefile README* *.zip /*docker/* *.png *.pdf /*tests*/ CLAUDE* *.md'
 
     - name: Upload Release
       uses: ncipollo/release-action@v1.12.0
