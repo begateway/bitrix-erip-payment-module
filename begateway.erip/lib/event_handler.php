@@ -20,6 +20,9 @@ Loc::loadMessages(__FILE__);
 \CModule::IncludeModule('begateway.erip');
 
 class EventHandler {
+  private static $paymentsToReconcile = [];
+  private static $reconciling = false;
+
   public static function OnBeforeSaleOrderSetField(\Bitrix\Main\Event $event)
   {
 
@@ -81,6 +84,83 @@ class EventHandler {
   }
 
   /**
+   * Remember existing ERIP bills whose payment amount/currency changed.
+   * Reconciliation is deferred until OnSaleOrderSaved so the complete order is
+   * already persisted and consistent (BEP-30748).
+   */
+  public static function OnSalePaymentEntitySaved(\Bitrix\Main\Event $event)
+  {
+    if (self::$reconciling) {
+      return;
+    }
+
+    /** @var Payment $payment */
+    $payment = $event->getParameter('ENTITY');
+    $oldValues = (array)$event->getParameter('VALUES');
+
+    $sumChanged = array_key_exists('SUM', $oldValues)
+      && PriceMaths::roundPrecision($oldValues['SUM']) !== PriceMaths::roundPrecision($payment->getSum());
+    $currencyChanged = array_key_exists('CURRENCY', $oldValues)
+      && $oldValues['CURRENCY'] !== $payment->getField('CURRENCY');
+
+    if ((!$sumChanged && !$currencyChanged)
+        || $payment->isPaid()
+        || empty($payment->getField('PS_INVOICE_ID'))
+        || !self::isEripPayment($payment)) {
+      return;
+    }
+
+    $order = $payment->getCollection()->getOrder();
+    if (!$order || !$order->getId()) {
+      return;
+    }
+
+    self::$paymentsToReconcile[$order->getId()][$payment->getId()] = true;
+  }
+
+  /**
+   * Reconcile changed payments after Bitrix has saved the order and all child
+   * entities. Service::initiatePay persists a replacement PS_INVOICE_ID; the
+   * guard prevents that nested save from starting another reconciliation.
+   */
+  public static function OnSaleOrderSaved(\Bitrix\Main\Event $event)
+  {
+    if (self::$reconciling || $event->getParameter('IS_NEW')) {
+      return;
+    }
+
+    /** @var Order $order */
+    $order = $event->getParameter('ENTITY');
+    $orderId = $order->getId();
+    if (empty(self::$paymentsToReconcile[$orderId])) {
+      return;
+    }
+
+    $paymentIds = array_keys(self::$paymentsToReconcile[$orderId]);
+    unset(self::$paymentsToReconcile[$orderId]);
+
+    self::$reconciling = true;
+    try {
+      $result = self::initiatePay($order, $paymentIds);
+      if ($result->isSuccess()) {
+        self::sendInstructionMails($order, $result);
+      } else {
+        PaySystem\Logger::addError(
+          __CLASS__ . ': failed to reconcile ERIP bill after payment change: '
+          . implode('; ', $result->getErrorMessages())
+        );
+      }
+    } catch (\Throwable $e) {
+      PaySystem\Logger::addError(
+        __CLASS__ . ': exception while reconciling ERIP bill after payment change: '
+        . $e->getMessage()
+      );
+    } finally {
+      self::$reconciling = false;
+    }
+  }
+
+  /**
 	 * @param Order $payment
 	 * @param Request|null $request
 	 * @return ServiceResult
@@ -92,7 +172,7 @@ class EventHandler {
 	 * @throws Main\SystemException
 	 */
 
-  public static function initiatePay(Order $order) {
+  public static function initiatePay(Order $order, array $paymentIds = null) {
     $result = new ServiceResult();
 
     $resultStorage = [
@@ -107,12 +187,15 @@ class EventHandler {
 
     foreach ($paymentCollection as $payment) {
 
-      $ps = $payment->getPaySystem();
-      $description = $ps->getHandlerDescription();
-
-      if (!isset($description['CODES']['BEGATEWAY_ERIP_ID'])) { // не обработчик ЕРИП
+      if ($paymentIds !== null && !in_array($payment->getId(), $paymentIds, true)) {
         continue;
       }
+
+      if (!self::isEripPayment($payment)) { // не обработчик ЕРИП
+        continue;
+      }
+
+      $ps = $payment->getPaySystem();
 
       if ($payment->isPaid()) {// пропускаем уже оплаченные ЕРИП платежи
         continue;
@@ -170,6 +253,36 @@ class EventHandler {
     }
 
     return $result;
+  }
+
+  private static function isEripPayment(Payment $payment): bool
+  {
+    $ps = $payment->getPaySystem();
+    if (!$ps) {
+      return false;
+    }
+
+    $description = $ps->getHandlerDescription();
+    return isset($description['CODES']['BEGATEWAY_ERIP_ID']);
+  }
+
+  private static function sendInstructionMails(Order $order, ServiceResult $result): void
+  {
+    $data = $result->getData();
+    if (empty($data['ids'])) {
+      return;
+    }
+
+    for ($i = 0; $i < count($data['ids']); $i++) {
+      if (empty($data['params'][$i])) {
+        continue;
+      }
+
+      $payment = $order->getPaymentCollection()->getItemById($data['ids'][$i]);
+      if ($payment) {
+        self::sendMail($order, $payment, $data['params'][$i]);
+      }
+    }
   }
 
   public static function cancelPay(Order $order) {

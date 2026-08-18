@@ -95,8 +95,10 @@ class begateway_eripHandler extends PaySystem\ServiceHandler implements PaySyste
 
 			$createEripBillData = $createEripBillResult->getData();
 			if (!empty($createEripBillData['transaction']['uid'])) {
+				$templateParams = $this->getTemplateParams($payment, $createEripBillData);
 				$result->setPsData(['PS_INVOICE_ID' => $createEripBillData['transaction']['uid']]);
-				$result->setData($this->getTemplateParams($payment, $createEripBillData));
+				$result->setData($templateParams);
+				\BeGateway\Module\Erip\PaymentData::set($payment->getId(), $templateParams);
 			}
 
 			$this->setExtraParams($this->getTemplateParams($payment, $createEripBillData));

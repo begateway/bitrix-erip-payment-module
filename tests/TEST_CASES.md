@@ -1,4 +1,4 @@
-# BEP-29814 — test cases
+# BEP-29814 / BEP-30748 — test cases
 
 Bug: after a manual change of the order items / payment sum in Bitrix admin, the
 ERIP module sent the **original** amount to bePaid instead of the updated one.
@@ -13,6 +13,18 @@ amount/currency drift (only for `pending` bills) it deletes the stale bill and
 creates a new one. `event_handler.php::initiatePay` no longer skips on
 existing `PS_INVOICE_ID`; it forwards to the handler and decides whether to
 re-email the customer based on whether the bill UID changed.
+
+BEP-30748 exposed a second trigger gap: 1C can save a new Payment sum while the
+order remains in the ERIP-awaiting status, so `initiatePay` was never called
+again. The module now records `SUM`/`CURRENCY` changes in
+`OnSalePaymentEntitySaved` and reconciles the bill at `OnSaleOrderSaved`,
+after Bitrix has persisted the consistent order. A recursion guard makes the
+nested `PS_INVOICE_ID` save idempotent.
+
+Bitrix also omits `ServiceResult::getData()` from
+`onSalePsInitiatePaySuccess`. The request-scoped
+`BeGateway\Module\Erip\PaymentData::get($paymentId)` API exposes the latest
+successful ERIP template payload to listeners after that event.
 
 ---
 
@@ -33,7 +45,7 @@ https://docs.bepaid.by/ru/payment_methods/apms/erip/testing/
 | # | Scenario | What it proves |
 |---|----------|----------------|
 | 1 | POST `/beyag/payments` with `test:true`, BYN 63.60 → GET it back. | Round-trip works; the API echoes the amount we sent. |
-| 2 | Reproduce BEP-29814: create bill with 63.60, then DELETE it, then create a fresh bill with 39.44. GET → assert new amount. | The fix's primitive (delete + recreate) is supported by the API and produces a new UID with the new amount. There is no PATCH endpoint, so delete-and-recreate is the only correct path. |
+| 2 | Reproduce BEP-30748 order 8122: create bill with 252.44, then DELETE it, then create a fresh bill with 483.14. GET → assert new amount. | The fix's primitive (delete + recreate) is supported by the API and produces a new UID with the new amount. There is no PATCH endpoint, so delete-and-recreate is the only correct path. |
 | 3 | POST with `request.amount = 999` (the documented failure trigger) → poll bill status until `failed`. | Failure-side webhook flow is exercised end-to-end. |
 | 4 | POST with `request.amount = 1000` (BYN 10.00) → poll until `successful` (auto-webhook fires after ~10 s in test mode). | Success-side webhook flow is exercised end-to-end. |
 
@@ -137,31 +149,27 @@ package.json        bare npm manifest (only @playwright/test, for the wizard)
 * The bePaid sandbox **public key** for the configured shop, otherwise F3
   is auto-skipped (`isSignatureCorrect` would always fail).
 
-### Bring-up
+### Bring-up (bind-mount-free Docker Compose)
 
 ```bash
-# 1) build & start (the Dockerfile already pulls a fresh Bitrix Business
-#    distribution and runs PHP 8.2; the `begateway.erip` source is mounted
-#    via the existing docker-compose volume).
-docker compose up -d
-until docker compose exec -T mysql mysqladmin --silent --user=root --password=root ping; do sleep 2; done
+# 1) Build and start an isolated stack. The e2e image bakes in the module,
+#    so this also works when Docker Desktop cannot bind-mount /workspace.
+docker compose -f docker-compose.e2e.yml -p bitrix-erip-bep30748 up -d --build
 
-# 2) walk the install wizard headlessly (~2 min) — picks the eshop solution.
-cd tests/feature
-npm install            # one-off, installs Playwright + chromium
-npx playwright install chromium
-node bitrix-wizard.mjs
+# 2) Walk the install wizard headlessly (~2 min) over the Compose network.
+docker compose -f docker-compose.e2e.yml -p bitrix-erip-bep30748 \
+  --profile tools run --rm --build wizard
 
-# 3) public tunnel (pick one).
+# 3) Optional public tunnel (required only for F3).
 ngrok http 8088 --host-header=localhost:8088 &      # or
 npx localtunnel --port 8088 &                       # if ngrok is rate-limited
 TUNNEL_URL=...                                      # whatever the tunnel prints
 
-# 4) install + configure the module inside the container.
-CID=$(docker compose ps -q bitrix)
-docker cp install-erip.php  "$CID":/tmp/
-docker cp feature-tests.php "$CID":/tmp/
-docker compose exec -T \
+# 4) Copy the setup/tests into the container and configure the module.
+CID=$(docker compose -f docker-compose.e2e.yml -p bitrix-erip-bep30748 ps -q bitrix)
+docker cp tests/feature/install-erip.php  "$CID":/tmp/
+docker cp tests/feature/feature-tests.php "$CID":/tmp/
+docker compose -f docker-compose.e2e.yml -p bitrix-erip-bep30748 exec -T \
   -e NOTIFICATION_URL="$TUNNEL_URL/bitrix/tools/sale_ps_result.php" \
   -e BEPAID_PUBLIC_KEY="$(cat path/to/shop-4225-public-key.pem)" \
   bitrix php /tmp/install-erip.php
@@ -179,7 +187,8 @@ docker compose exec -T \
 ### Run
 
 ```bash
-docker compose exec -T bitrix php /tmp/feature-tests.php
+docker compose -f docker-compose.e2e.yml -p bitrix-erip-bep30748 \
+  exec -T bitrix php /tmp/feature-tests.php
 ```
 
 Exit code is non-zero on any FAIL. F3 is the only test that needs the
@@ -189,8 +198,9 @@ tunnel to be reachable from the public internet.
 
 | #  | Name                                                  | Patch coverage                                                                                 | Maps to manual case |
 |----|-------------------------------------------------------|------------------------------------------------------------------------------------------------|---------------------|
-| F1 | Basket sum lowered after bill issuance must recreate  | `handler.php::isExistingBillStale` → `deleteEripBill` → `createEripBill`                       | M1                  |
+| F1 | Saved payment/order sum change automatically recreates bill | `OnSalePaymentEntitySaved` → `OnSaleOrderSaved` → stale bill delete/recreate              | M1                  |
 | F2 | Idempotent re-render — sum unchanged                  | Stale-check returns `matches`; same `PS_INVOICE_ID`; no email; no DELETE                       | M2                  |
+| F2b| Successful initiate payload remains available        | `PaymentData::get($paymentId)` exposes the handler result after Bitrix's success event          | —                   |
 | F3 | Success-path bePaid auto-webhook lands as paid        | Whole webhook chain: signed POST → `processRequest` → `processPayment`                         | M5                  |
 | F4 | Cancel deletes the bill in bePaid                     | `Service::cancel` → handler `cancel` → `deleteEripBill`                                        | M6                  |
 | F5 | Instruction email fires once per real bill issuance   | EA-status-change → `EventHandler` → `b_event` row created on initial+recreate, NOT on re-toggle | M1+M2 (email side)  |

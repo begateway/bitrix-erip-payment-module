@@ -109,10 +109,13 @@ class begateway_erip extends CModule
 		return true;
 	}
 
-	protected function addHandlers()
+  protected function addHandlers()
 	{
     $eventManager = \Bitrix\Main\EventManager::getInstance();
     $eventManager->registerEventHandler('sale', 'OnBeforeSaleOrderSetField', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnBeforeSaleOrderSetField');
+    $eventManager->registerEventHandler('sale', 'OnSalePaymentEntitySaved', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnSalePaymentEntitySaved');
+		$eventManager->registerEventHandler('sale', 'OnSaleOrderSaved', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnSaleOrderSaved');
+		\Bitrix\Main\Config\Option::set($this->MODULE_ID, 'bep_30748_handlers_registered', 'Y');
 
 		return true;
 	}
@@ -121,6 +124,9 @@ class begateway_erip extends CModule
 	{
     $eventManager = \Bitrix\Main\EventManager::getInstance();
     $eventManager->unRegisterEventHandler('sale', 'OnBeforeSaleOrderSetField', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnBeforeSaleOrderSetField');
+		$eventManager->unRegisterEventHandler('sale', 'OnSalePaymentEntitySaved', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnSalePaymentEntitySaved');
+		$eventManager->unRegisterEventHandler('sale', 'OnSaleOrderSaved', $this->MODULE_ID, '\\BeGateway\\Module\\Erip\\EventHandler', 'OnSaleOrderSaved');
+		\Bitrix\Main\Config\Option::delete($this->MODULE_ID, ['name' => 'bep_30748_handlers_registered']);
 
 		return true;
 	}
